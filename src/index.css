@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-pesantren-green: #A4C95A;
+  --color-pesantren-blue: #54B4E5;
+  --color-pesantren-yellow: #FFDD00;
+  --color-pesantren-red: #E62326;
+  --color-pesantren-dark: #1a2e12;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: "Outfit", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-[#f4f9f1] text-slate-800 antialiased font-sans overflow-x-hidden;
+  }
+}
+
+@layer components {
+  /* Dynamic Glass Cards */
+  .card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 px-6 py-3 bg-pesantren-green text-pesantren-dark font-bold rounded-xl hover:bg-[#b5db69] hover:-translate-y-1 hover:shadow-lg transition-all duration-300;
+  }
+  
+  .btn-secondary {
+    @apply flex items-center justify-center gap-2 px-6 py-3 bg-white text-pesantren-dark font-bold rounded-xl border-2 border-pesantren-green/20 hover:border-pesantren-green hover:-translate-y-1 hover:shadow-lg transition-all duration-300;
+  }
+
+  /* Form Elements */
+  .input-field {
+    @apply w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-pesantren-blue focus:ring-4 focus:ring-pesantren-blue/10 transition-all text-slate-700 placeholder-slate-400 font-medium;
+  }
+
+  .form-label {
+    @apply block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider;
+  }
+
+  /* Typography */
+  .page-header {
+    @apply text-3xl font-display font-extrabold text-pesantren-dark tracking-tight;
+  }
+
+  /* Custom Badges */
+  .badge-green {
+    @apply bg-pesantren-green/10 text-pesantren-dark border border-pesantren-green/20 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap;
+  }
+  .badge-blue {
+    @apply bg-pesantren-blue/10 text-[#0d557c] border border-pesantren-blue/20 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap;
+  }
+  .badge-yellow {
+    @apply bg-pesantren-yellow/20 text-[#7a6a00] border border-pesantren-yellow/30 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap;
+  }
+
+  /* Animated Backgrounds */
+  .bg-mesh {
+    background-color: #f4f9f1;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(81,51%,86%,1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(200,75%,88%,1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(53,100%,88%,1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(81,51%,86%,1) 0px, transparent 50%);
+  }
+
+  .glass-panel {
+    @apply bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-[2.5rem];
+  }
+}
