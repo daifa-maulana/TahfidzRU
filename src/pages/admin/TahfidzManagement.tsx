@@ -9,6 +9,21 @@ import { Toast } from '../../components/Toast';
 import { Modal } from '../../components/Modal';
 import { motion } from 'motion/react';
 
+const SURAH_LIST = [
+  "Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa'","Al-Ma'idah","Al-An'am","Al-A'raf","Al-Anfal","At-Tawbah","Yunus",
+  "Hud","Yusuf","Ar-Ra'd","Ibrahim","Al-Hijr","An-Nahl","Al-Isra'","Al-Kahf","Maryam","Taha",
+  "Al-Anbiya'","Al-Hajj","Al-Mu'minun","An-Nur","Al-Furqan","Asy-Syu'ara'","An-Naml","Al-Qasas","Al-'Ankabut","Ar-Rum",
+  "Luqman","As-Sajdah","Al-Ahzab","Saba'","Fatir","Ya-Sin","Ash-Shaffat","Sad","Az-Zumar","Ghafir",
+  "Fussilat","Asy-Syura","Az-Zukhruf","Ad-Dukhan","Al-Jasiyah","Al-Ahqaf","Muhammad","Al-Fath","Al-Hujurat","Qaf",
+  "Adz-Dzariyat","At-Tur","An-Najm","Al-Qamar","Ar-Rahman","Al-Waqi'ah","Al-Hadid","Al-Mujadila","Al-Hasyr","Al-Mumtahanah",
+  "As-Saff","Al-Jumu'ah","Al-Munafiqun","At-Taghabun","At-Talaq","At-Tahrim","Al-Mulk","Al-Qalam","Al-Haqqah","Al-Ma'arij",
+  "Nuh","Al-Jinn","Al-Muzzammil","Al-Muddassir","Al-Qiyamah","Al-Insan","Al-Mursalat","An-Naba'","An-Nazi'at","'Abasa",
+  "At-Takwir","Al-Infitar","Al-Mutaffifin","Al-Inshiqaq","Al-Buruj","At-Tariq","Al-A'la","Al-Ghashiyah","Al-Fajr","Al-Balad",
+  "Ash-Shams","Al-Lail","Ad-Duha","Ash-Sharh","At-Tin","Al-'Alaq","Al-Qadr","Al-Bayyinah","Az-Zalzalah","Al-'Adiyat",
+  "Al-Qari'ah","At-Takathur","Al-'Asr","Al-Humazah","Al-Fil","Quraish","Al-Ma'un","Al-Kauthar","Al-Kafirun","An-Nasr",
+  "Al-Masad","Al-Ikhlas","Al-Falaq","An-Nas"
+];
+
 export default function TahfidzManagement() {
   const [santri, setSantri] = useState<any[]>([]);
   const [selectedSantri, setSelectedSantri] = useState<string>('');
@@ -114,54 +129,8 @@ export default function TahfidzManagement() {
                   <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.surah}
                     onChange={(e) => setFormData({ ...formData, surah: e.target.value })} required>
                     <option value="">-- Pilih Surah --</option>
-                    <optgroup label="Surah Populer">
-                      <option value="Al-Fatihah">Al-Fatihah</option>
-                      <option value="Al-Baqarah">Al-Baqarah</option>
-                      <option value="Ali 'Imran">Ali 'Imran</option>
-                      <option value="Yasin">Yasin</option>
-                      <option value="Ar-Rahman">Ar-Rahman</option>
-                      <option value="Al-Waqi'ah">Al-Waqi'ah</option>
-                      <option value="Al-Mulk">Al-Mulk</option>
-                      <option value="Al-Kahf">Al-Kahf</option>
-                    </optgroup>
-                    <optgroup label="Juz 30 (Juz 'Amma)">
-                      <option value="An-Naba'">An-Naba'</option>
-                      <option value="An-Nazi'at">An-Nazi'at</option>
-                      <option value="'Abasa">'Abasa</option>
-                      <option value="At-Takwir">At-Takwir</option>
-                      <option value="Al-Infitar">Al-Infitar</option>
-                      <option value="Al-Mutaffifin">Al-Mutaffifin</option>
-                      <option value="Al-Inshiqaq">Al-Inshiqaq</option>
-                      <option value="Al-Buruj">Al-Buruj</option>
-                      <option value="At-Tariq">At-Tariq</option>
-                      <option value="Al-A'la">Al-A'la</option>
-                      <option value="Al-Ghashiyah">Al-Ghashiyah</option>
-                      <option value="Al-Fajr">Al-Fajr</option>
-                      <option value="Al-Balad">Al-Balad</option>
-                      <option value="Ash-Shams">Ash-Shams</option>
-                      <option value="Al-Lail">Al-Lail</option>
-                      <option value="Ad-Duha">Ad-Duha</option>
-                      <option value="Ash-Sharh">Ash-Sharh</option>
-                      <option value="At-Tin">At-Tin</option>
-                      <option value="Al-'Alaq">Al-'Alaq</option>
-                      <option value="Al-Qadr">Al-Qadr</option>
-                      <option value="Al-Bayyinah">Al-Bayyinah</option>
-                      <option value="Az-Zalzalah">Az-Zalzalah</option>
-                      <option value="Al-'Adiyat">Al-'Adiyat</option>
-                      <option value="Al-Qari'ah">Al-Qari'ah</option>
-                      <option value="At-Takathur">At-Takathur</option>
-                      <option value="Al-'Asr">Al-'Asr</option>
-                      <option value="Al-Humazah">Al-Humazah</option>
-                      <option value="Al-Fil">Al-Fil</option>
-                      <option value="Quraish">Quraish</option>
-                      <option value="Al-Ma'un">Al-Ma'un</option>
-                      <option value="Al-Kauthar">Al-Kauthar</option>
-                      <option value="Al-Kafirun">Al-Kafirun</option>
-                      <option value="An-Nasr">An-Nasr</option>
-                      <option value="Al-Masad">Al-Masad</option>
-                      <option value="Al-Ikhlas">Al-Ikhlas</option>
-                      <option value="Al-Falaq">Al-Falaq</option>
-                      <option value="An-Nas">An-Nas</option>
+                    <optgroup label="Semua Surah">
+                      {SURAH_LIST.map(s => <option key={s} value={s}>{s}</option>)}
                     </optgroup>
                     <optgroup label="Lainnya">
                       <option value="Lainnya (Tulis di Catatan)">Surah Lainnya (Tulis di Catatan)</option>

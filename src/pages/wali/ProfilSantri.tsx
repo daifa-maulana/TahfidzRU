@@ -1,31 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { User, MapPin, Award, Shield, UserCircle } from 'lucide-react';
+import { User, MapPin, Award, Shield, UserCircle, Edit2, Check, X, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useToast } from '../../hooks/useToast';
+import { Toast } from '../../components/Toast';
 
 export default function ProfilSantri() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [santri, setSantri] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAddress, setEditAddress] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchSantri();
-  }, []);
+  }, [user?.id]);
 
   const fetchSantri = async () => {
+    if (!user?.id) return;
     try {
-      const { data, error } = await supabase.from('santri').select('*').eq('wali_id', user?.id);
+      const { data, error } = await supabase.from('santri').select('*').eq('wali_id', user.id);
       if (error) throw error;
       setSantri(data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); }
+    finally { setLoading(false); }
   };
 
-  if (loading) return <div className="p-8 text-slate-400 text-center">Memuat profil...</div>;
+  const handleEdit = (s: any) => {
+    setEditingId(s.id);
+    setEditAddress(s.address || '');
+  };
+
+  const handleSave = async (s: any) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('santri').update({ address: editAddress }).eq('id', s.id).eq('wali_id', user?.id);
+      if (error) throw error;
+      showToast('Alamat berhasil diperbarui', 'success');
+      setSantri(prev => prev.map(x => x.id === s.id ? { ...x, address: editAddress } : x));
+      setEditingId(null);
+    } catch { showToast('Gagal memperbarui alamat', 'error'); }
+    finally { setSaving(false); }
+  };
+
+  const handleCancel = () => setEditingId(null);
+
+  if (authLoading || loading) return <div className="p-8 text-slate-400 text-center">Memuat profil...</div>;
 
   return (
     <div className="space-y-6 pb-10">
@@ -57,7 +81,7 @@ export default function ProfilSantri() {
                 <div className="inline-flex items-center px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
                   <p className="text-xs font-mono text-slate-500">NIS: {s.nis}</p>
                 </div>
-                
+
                 <div className="mt-8 space-y-3 text-left">
                   <div className="flex items-center p-4 bg-slate-50 rounded-xl">
                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-slate-400 mr-4 shadow-sm">
@@ -68,15 +92,42 @@ export default function ProfilSantri() {
                       <p className="text-sm font-semibold text-slate-700">{s.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</p>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center p-4 bg-slate-50 rounded-xl">
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-slate-400 mr-4 shadow-sm">
-                      <MapPin size={18} />
+
+                  <div className="p-4 bg-slate-50 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-slate-400 mr-4 shadow-sm">
+                          <MapPin size={18} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Alamat</p>
+                        </div>
+                      </div>
+                      {editingId !== s.id && (
+                        <button onClick={() => handleEdit(s)} className="p-2 rounded-lg text-slate-400 hover:text-[#1e3a5f] hover:bg-blue-50 transition-colors">
+                          <Edit2 size={14} />
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Alamat</p>
-                      <p className="text-sm font-semibold text-slate-700 truncate max-w-[200px]">{s.address || 'Belum diisi'}</p>
-                    </div>
+                    {editingId === s.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          className="input-field text-sm flex-1"
+                          value={editAddress}
+                          onChange={(e) => setEditAddress(e.target.value)}
+                          placeholder="Masukkan alamat..."
+                        />
+                        <button onClick={() => handleSave(s)} disabled={saving} className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors">
+                          {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                        </button>
+                        <button onClick={handleCancel} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-semibold text-slate-700 break-words">{s.address || 'Belum diisi'}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center p-4 bg-slate-50 rounded-xl">
@@ -104,6 +155,8 @@ export default function ProfilSantri() {
           ))
         )}
       </div>
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => {}} />}
     </div>
   );
 }

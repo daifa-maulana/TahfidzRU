@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Bell, User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -16,9 +16,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -27,7 +25,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       setProfile(data);
     }
     fetchProfile();
@@ -37,9 +35,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
-      }
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setIsNotifOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -94,48 +89,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <div className="hidden sm:flex items-center px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100 mr-2">
            <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></div>
            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Sistem Online</span>
-        </div>
-
-        <div className="relative" ref={notifRef}>
-          <button 
-            onClick={() => setIsNotifOpen(!isNotifOpen)}
-            className="relative p-2.5 text-slate-400 hover:text-pesantren-dark hover:bg-slate-100 rounded-xl transition-all"
-          >
-            <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-pesantren-red rounded-full"></span>
-          </button>
-          
-          <AnimatePresence>
-            {isNotifOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50"
-              >
-                <div className="px-4 py-3 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-                  <span className="text-sm font-bold text-slate-800">Pemberitahuan</span>
-                  <span className="text-[10px] bg-pesantren-red/10 text-pesantren-red px-2 py-1 rounded-full font-bold">1 Baru</span>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  <div className="p-4 border-b border-slate-50 bg-blue-50/30 hover:bg-slate-50 transition-colors cursor-pointer">
-                    <p className="text-xs font-bold text-slate-800 mb-1">Pembaruan Sistem Berhasil</p>
-                    <p className="text-xs text-slate-500 leading-relaxed">Pembaruan tampilan sistem informasi pesantren telah berhasil diterapkan.</p>
-                    <p className="text-[10px] text-slate-400 mt-2 font-medium">Baru saja</p>
-                  </div>
-                  <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
-                    <p className="text-xs font-bold text-slate-800 mb-1">Jadwal Ujian Tahfidz</p>
-                    <p className="text-xs text-slate-500 leading-relaxed">Ujian tahfidz bulanan akan dilaksanakan pada akhir pekan ini. Harap persiapkan data.</p>
-                    <p className="text-[10px] text-slate-400 mt-2 font-medium">1 hari yang lalu</p>
-                  </div>
-                </div>
-                <div className="p-3 text-center border-t border-slate-50 bg-slate-50/50">
-                  <button className="text-xs font-bold text-pesantren-blue hover:text-[#2d5a9e]">Tandai semua dibaca</button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         <div className="relative" ref={dropdownRef}>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<'admin' | 'pengajar' | 'wali' | null>(null);
+  const roleRequestId = useRef(0);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -25,59 +26,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Get initial session
-    const getInitialSession = async () => {
+    let mounted = true;
+
+    const fetchRole = async (userId: string) => {
+      const requestId = ++roleRequestId.current;
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (!mounted || requestId !== roleRequestId.current) return;
+
         if (error) throw error;
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchRole(session.user.id);
-        } else {
+        setRole((data?.role as AuthContextType['role']) ?? null);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        if (mounted && requestId === roleRequestId.current) {
+          setRole(null);
+        }
+      } finally {
+        if (mounted && requestId === roleRequestId.current) {
           setLoading(false);
         }
-      } catch (err) {
-        console.error('Supabase Session Error:', err);
-        // If it's a "Failed to fetch", the user might be offline or URL is wrong
+      }
+    };
+
+    const applySession = (nextSession: Session | null) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      if (nextSession?.user) {
+        setLoading(true);
+        fetchRole(nextSession.user.id);
+      } else {
+        roleRequestId.current += 1;
+        setRole(null);
         setLoading(false);
       }
     };
 
-    getInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRole(session.user.id);
-      } else {
-        setRole(null);
+    supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
+      if (!mounted) return;
+      if (error) {
+        console.error('Supabase Session Error:', error);
         setLoading(false);
+        return;
       }
+      applySession(initialSession);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!mounted) return;
+      applySession(nextSession);
+    });
 
-  const fetchRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-      
-      if (error) throw error;
-      setRole(data?.role as any);
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();

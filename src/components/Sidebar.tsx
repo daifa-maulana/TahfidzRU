@@ -36,7 +36,6 @@ export function Sidebar({ role, onClose }: SidebarProps) {
       { path: '/admin/absensi', icon: ClipboardCheck, label: 'Rekap Presensi' },
       { path: '/admin/tahfidz', icon: BookOpen, label: 'Buku Tahfidz' },
       { path: '/admin/nilai', icon: GraduationCap, label: 'Nilai Akademik' },
-      { path: '/admin/kurikulum', icon: Settings, label: 'Mata Pelajaran' },
       { path: '/admin/keuangan', icon: Wallet, label: 'Sistem Keuangan' },
       { path: '/admin/agenda', icon: Calendar, label: 'Agenda Acara' },
       { path: '/admin/approval', icon: UserCheck, label: 'Persetujuan Akun' },

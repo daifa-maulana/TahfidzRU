@@ -108,7 +108,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
         {/* Log Tahfidz */}
         <div className="xl:col-span-2 card overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
@@ -176,10 +176,10 @@ export default function AdminDashboard() {
                 <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
                   <div className="flex-shrink-0 w-11 h-11 bg-[#1e3a5f]/5 rounded-xl flex flex-col items-center justify-center border border-[#1e3a5f]/10">
                     <span className="text-[8px] font-semibold text-[#1e3a5f] uppercase leading-none">
-                      {format(new Date(item.date), 'MMM', { locale: id })}
+                      {format(new Date(item.date + 'T12:00:00'), 'MMM', { locale: id })}
                     </span>
                     <span className="text-base font-bold text-[#1e3a5f] leading-tight">
-                      {format(new Date(item.date), 'dd')}
+                      {format(new Date(item.date + 'T12:00:00'), 'dd')}
                     </span>
                   </div>
                   <div className="min-w-0 pt-0.5">

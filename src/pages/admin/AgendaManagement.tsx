@@ -9,6 +9,17 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { motion } from 'motion/react';
 
+const toLocalNoon = (dateStr: string) => {
+  try {
+    if (!dateStr) return new Date();
+    const clean = typeof dateStr === 'string' ? dateStr.split('T')[0] : String(dateStr);
+    const d = new Date(clean + 'T00:00:00');
+    return isNaN(d.getTime()) ? new Date() : d;
+  } catch {
+    return new Date();
+  }
+};
+
 export default function AgendaManagement() {
   const [agendas, setAgendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +59,14 @@ export default function AgendaManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.title.trim()) {
+      showToast('Judul agenda tidak boleh kosong', 'error');
+      return;
+    }
+    if (!formData.date) {
+      showToast('Tanggal agenda harus diisi', 'error');
+      return;
+    }
     setIsSubmitting(true);
     try {
       if (editingAgenda) { await dataService.updateAgenda(editingAgenda.id, formData); showToast('Agenda diperbarui', 'success'); }
@@ -92,12 +111,12 @@ export default function AgendaManagement() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-[#1e3a5f] text-white rounded-xl flex flex-col items-center justify-center shadow-sm flex-shrink-0">
-                    <span className="text-[9px] font-semibold opacity-60 uppercase">
-                      {format(new Date(item.date + 'T00:00:00'), 'MMM', { locale: id })}
-                    </span>
-                    <span className="text-lg font-bold leading-none">
-                      {format(new Date(item.date + 'T00:00:00'), 'dd')}
-                    </span>
+                     <span className="text-[9px] font-semibold opacity-60 uppercase">
+                       {(() => { try { return format(toLocalNoon(item.date), 'MMM', { locale: id }); } catch { return '---'; } })()}
+                     </span>
+                     <span className="text-lg font-bold leading-none">
+                       {(() => { try { return format(toLocalNoon(item.date), 'dd'); } catch { return '--'; } })()}
+                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold text-slate-800 group-hover:text-[#1e3a5f] transition-colors line-clamp-1">{item.title}</h3>

@@ -46,8 +46,8 @@ export default function AgendaWali() {
             <motion.div key={item.id} whileHover={{ y: -4 }} className="card p-6 hover:shadow-md transition-all flex flex-col h-full">
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-14 h-14 bg-[#1e3a5f] text-white rounded-xl flex flex-col items-center justify-center shadow-sm flex-shrink-0">
-                  <span className="text-[10px] uppercase font-semibold opacity-80">{format(new Date(item.date), 'MMM', { locale: localeId })}</span>
-                  <span className="text-xl font-bold leading-none">{format(new Date(item.date), 'dd')}</span>
+                   <span className="text-[10px] uppercase font-semibold opacity-80">{format(new Date(item.date + 'T12:00:00'), 'MMM', { locale: localeId })}</span>
+                   <span className="text-xl font-bold leading-none">{format(new Date(item.date + 'T12:00:00'), 'dd')}</span>
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-800 line-clamp-2">{item.title}</h3>

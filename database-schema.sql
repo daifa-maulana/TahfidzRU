@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS santri (
     nis TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     class_name TEXT,
+    type TEXT DEFAULT 'Mukim' CHECK (type IN ('Mukim', 'Non-Mukim')),
     gender TEXT CHECK (gender IN ('L', 'P')),
     birth_date DATE,
     address TEXT,
@@ -40,9 +41,11 @@ CREATE TABLE IF NOT EXISTS absensi (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
     date DATE DEFAULT CURRENT_DATE,
+    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib')),
     status TEXT CHECK (status IN ('Hadir', 'Izin', 'Sakit', 'Alpa')),
     note TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (santri_id, date, session)
 );
 
 CREATE TABLE IF NOT EXISTS tahfidz (
@@ -99,6 +102,7 @@ CREATE TABLE IF NOT EXISTS agenda (
     title TEXT NOT NULL,
     description TEXT,
     date DATE NOT NULL,
+    time TIME DEFAULT '08:00',
     location TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

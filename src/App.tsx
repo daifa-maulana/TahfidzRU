@@ -20,8 +20,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import SantriManagement from './pages/admin/SantriManagement';
 import AbsensiManagement from './pages/admin/AbsensiManagement';
 import TahfidzManagement from './pages/admin/TahfidzManagement';
-import NilaiManagement from './pages/admin/NilaiManagement';
-import KurikulumManagement from './pages/admin/KurikulumManagement';
+import NilaiDevelopment from './pages/admin/NilaiDevelopment';
 import KeuanganAdmin from './pages/admin/KeuanganAdmin';
 import AgendaManagement from './pages/admin/AgendaManagement';
 import UserApproval from './pages/admin/UserApproval';
@@ -105,8 +104,7 @@ function AppContent() {
             <Route path="santri" element={<SantriManagement />} />
             <Route path="absensi" element={<AbsensiManagement />} />
             <Route path="tahfidz" element={<TahfidzManagement />} />
-            <Route path="nilai" element={<NilaiManagement />} />
-            <Route path="kurikulum" element={<KurikulumManagement />} />
+            <Route path="nilai" element={<NilaiDevelopment />} />
             <Route path="keuangan" element={<KeuanganAdmin />} />
             <Route path="agenda" element={<AgendaManagement />} />
             <Route path="ijazah/:id" element={<TahfidzDiploma />} />

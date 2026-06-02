@@ -1,4 +1,23 @@
 import { supabase } from '../lib/supabase';
+import type { AbsensiSession } from '../constants/absensi';
+
+const sanitizeSantriPayload = (data: Record<string, unknown>) => {
+  const payload: Record<string, unknown> = {
+    name: String(data.name || '').trim(),
+    nis: String(data.nis || '').trim(),
+    class_name: String(data.class_name || '').trim() || null,
+    type: data.type || 'Mukim',
+    gender: data.gender || 'L',
+    wali_id: data.wali_id ? data.wali_id : null,
+  };
+  const email = String(data.email || '').trim();
+  if (email) payload.email = email;
+  const photo = data.photo_url;
+  if (typeof photo === 'string' && photo.length > 0 && photo.length < 500_000) {
+    payload.photo_url = photo;
+  }
+  return payload;
+};
 
 // Generic CRUD operations handler
 const handleResponse = async (promise: any) => {
@@ -23,14 +42,17 @@ export const dataService = {
   // Santri
   getSantriList: () => handleResponse(supabase.from('santri').select('*').order('name')),
   getSantriById: (id: string) => handleResponse(supabase.from('santri').select('*').eq('id', id).single()),
-  createSantri: (data: any) => handleResponse(supabase.from('santri').insert(data)),
-  updateSantri: (id: string, data: any) => handleResponse(supabase.from('santri').update(data).eq('id', id)),
+  createSantri: (data: any) =>
+    handleResponse(supabase.from('santri').insert(sanitizeSantriPayload(data)).select().single()),
+  updateSantri: (id: string, data: any) =>
+    handleResponse(supabase.from('santri').update(sanitizeSantriPayload(data)).eq('id', id).select().single()),
   deleteSantri: (id: string) => handleResponse(supabase.from('santri').delete().eq('id', id)),
 
   // Absensi
-  getAbsensiList: (date?: string) => {
+  getAbsensiList: (date?: string, session?: AbsensiSession) => {
     let query = supabase.from('absensi').select('*, santri(name, nis, class_name)');
     if (date) query = query.eq('date', date);
+    if (session) query = query.eq('session', session);
     return handleResponse(query);
   },
   getAbsensiBySantri: (santriId: string) => handleResponse(
@@ -41,11 +63,16 @@ export const dataService = {
   saveAbsensi: async (absensiData: any[]) => {
     if (absensiData.length === 0) return null;
     const date = absensiData[0].date;
+    const session = absensiData[0].session || 'Shubuh';
     const santriIds = absensiData.map(a => a.santri_id);
-    
-    // Clean up existing records for these santri on this date to avoid duplicates
-    await supabase.from('absensi').delete().eq('date', date).in('santri_id', santriIds);
-    
+
+    await supabase
+      .from('absensi')
+      .delete()
+      .eq('date', date)
+      .eq('session', session)
+      .in('santri_id', santriIds);
+
     return handleResponse(supabase.from('absensi').insert(absensiData));
   },
 

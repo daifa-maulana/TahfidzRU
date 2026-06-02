@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { BookOpen, ClipboardCheck, Clock } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Clock, Calendar as CalendarIcon, Loader2, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { id as localeId } from 'date-fns/locale';
 import { format } from 'date-fns';
@@ -53,6 +53,54 @@ export default function PengajarDashboard() {
             <p className="text-sm text-slate-500">Input dan evaluasi hafalan Al-Qur'an santri</p>
           </motion.div>
         </Link>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="p-5 border-b border-slate-50 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Agenda & Pengingat</h3>
+            <p className="text-xs text-slate-500 mt-1">Acara pesantren yang akan datang</p>
+          </div>
+          <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
+            <CalendarIcon size={20} />
+          </div>
+        </div>
+        <div className="p-5">
+          {loading ? (
+            <div className="text-center py-10 text-slate-400 text-sm">Memuat agenda...</div>
+          ) : stats?.upcomingAgenda?.length > 0 ? (
+            <div className="space-y-3">
+              {stats.upcomingAgenda.map((item: any) => (
+                <div key={item.id} className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-colors">
+                  <div className="w-12 h-12 bg-[#1e3a5f] text-white rounded-xl flex flex-col items-center justify-center shadow-sm flex-shrink-0">
+                    <span className="text-[9px] uppercase font-semibold opacity-80">{format(new Date(item.date + 'T12:00:00'), 'MMM', { locale: localeId })}</span>
+                    <span className="text-base font-bold leading-none">{format(new Date(item.date + 'T12:00:00'), 'dd')}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-800 truncate">{item.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {item.time && (
+                        <span className="text-[10px] text-slate-500 font-medium flex items-center">
+                          <Clock size={11} className="mr-1" />{item.time} WIB
+                        </span>
+                      )}
+                      {item.location && (
+                        <span className="text-[10px] text-slate-500 font-medium flex items-center truncate">
+                          <MapPin size={11} className="mr-1 flex-shrink-0" />{item.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-400">
+              <CalendarIcon size={36} className="mx-auto text-slate-200 mb-3" />
+              <p className="text-sm font-medium">Belum ada agenda mendatang</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="card overflow-hidden">

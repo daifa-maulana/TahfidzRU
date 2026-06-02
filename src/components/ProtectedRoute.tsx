@@ -1,15 +1,24 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
   allowedRoles?: ('admin' | 'pengajar' | 'wali')[];
 }
 
+const roleHome: Record<'admin' | 'pengajar' | 'wali', string> = {
+  admin: '/admin',
+  pengajar: '/pengajar',
+  wali: '/wali',
+};
+
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { user, role, loading } = useAuth();
+  const location = useLocation();
 
-  if (loading) {
+  const waitingForRole = Boolean(user && allowedRoles && !role);
+
+  if (loading || waitingForRole) {
     return (
       <div className="flex bg-slate-50 items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -18,11 +27,15 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={roleHome[role]} replace />;
+  }
+
+  if (allowedRoles && !role) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
   return <Outlet />;

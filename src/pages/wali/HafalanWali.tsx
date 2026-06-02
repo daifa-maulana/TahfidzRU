@@ -9,18 +9,22 @@ import { id as localeId } from 'date-fns/locale';
 import { motion } from 'motion/react';
 
 export default function HafalanWali() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [santri, setSantri] = useState<any[]>([]);
   const [selectedSantriId, setSelectedSantriId] = useState<string>('');
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchSantri(); }, []);
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchSantri();
+  }, [user?.id]);
   useEffect(() => { if (selectedSantriId) fetchLogs(selectedSantriId); }, [selectedSantriId]);
 
   const fetchSantri = async () => {
+    if (!user?.id) return;
     try {
-      const { data, error } = await supabase.from('santri').select('id, name').eq('wali_id', user?.id);
+      const { data, error } = await supabase.from('santri').select('id, name').eq('wali_id', user.id);
       if (error) throw error;
       setSantri(data || []);
       if (data && data.length > 0) setSelectedSantriId(data[0].id);
@@ -33,7 +37,7 @@ export default function HafalanWali() {
     setLogs(data);
   };
 
-  if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>;
+  if (authLoading || loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>;
 
   return (
     <div className="space-y-6 pb-10">

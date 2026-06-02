@@ -9,16 +9,20 @@ import { id as localeId } from 'date-fns/locale';
 import { motion } from 'motion/react';
 
 export default function KeuanganWali() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [santri, setSantri] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchData();
+  }, [user?.id]);
 
   const fetchData = async () => {
+    if (!user?.id) return;
     try {
-      const { data: santriData } = await supabase.from('santri').select('id').eq('wali_id', user?.id);
+      const { data: santriData } = await supabase.from('santri').select('id').eq('wali_id', user.id);
       if (santriData && santriData.length > 0) {
         setSantri(santriData);
         const santriIds = santriData.map(s => s.id);
@@ -29,6 +33,10 @@ export default function KeuanganWali() {
     finally { setLoading(false); }
   };
 
+  if (authLoading || loading) {
+    return <div className="p-8 flex justify-center text-slate-400 text-sm">Memuat data keuangan...</div>;
+  }
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -38,27 +46,39 @@ export default function KeuanganWali() {
         </div>
       </div>
 
+       <div className="card p-5 bg-yellow-50 border-yellow-100 text-slate-700">
+         <div className="flex items-start gap-4">
+           <div className="w-11 h-11 rounded-2xl bg-yellow-100 text-yellow-700 flex items-center justify-center">
+             <Clock size={22} />
+           </div>
+           <div>
+             <p className="text-sm font-bold">Fitur Pembayaran SPP</p>
+             <p className="text-sm text-slate-600 mt-1">Sistem pembayaran SPP online saat ini masih dalam tahap pengembangan dan belum tersedia untuk umum.</p>
+           </div>
+         </div>
+       </div>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <motion.div whileHover={{ y: -4 }} className="card p-6 flex items-center gap-6">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <CreditCard size={28} />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status SPP Terakhir</p>
-            <h3 className="text-2xl font-bold text-emerald-600">Lunas</h3>
-          </div>
-        </motion.div>
-        
-        <motion.div whileHover={{ y: -4 }} className="card p-6 flex items-center gap-6">
-          <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <Clock size={28} />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Batas Pembayaran</p>
-            <h3 className="text-2xl font-bold text-slate-800">10 Setiap Bulan</h3>
-          </div>
-        </motion.div>
-      </div>
+         <motion.div whileHover={{ y: -4 }} className="card p-6 flex items-center gap-6">
+           <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center flex-shrink-0">
+             <CreditCard size={28} />
+           </div>
+           <div>
+              <p className="text-xs font-bold">Pembayaran SPP Bulanan</p>
+              <p className="text-xs text-slate-400 mt-1">Sistem pembayaran SPP online santri</p>
+             <h3 className="text-2xl font-bold text-slate-800">Dalam Pengembangan</h3>
+           </div>
+         </motion.div>
+         
+         <motion.div whileHover={{ y: -4 }} className="card p-6 flex items-center gap-6">
+           <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center flex-shrink-0">
+             <Clock size={28} />
+           </div>
+           <div>
+             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Konfirmasi Pembayaran</p>
+             <h3 className="text-2xl font-bold text-slate-800">Hubungi Admin</h3>
+           </div>
+         </motion.div>
+       </div>
 
       <div className="card overflow-hidden">
         <div className="p-5 border-b border-slate-50 flex items-center justify-between">

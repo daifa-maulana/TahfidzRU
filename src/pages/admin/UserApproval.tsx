@@ -80,7 +80,7 @@ export default function UserApproval() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden overflow-x-auto">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { GraduationCap, Plus, Edit2, Trash2, Loader2, UserCircle, ChevronDown, Activity } from 'lucide-react';
+import { GraduationCap, Plus, Edit2, Trash2, Loader2, UserCircle, ChevronDown, Activity, BookOpen } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
@@ -17,8 +17,11 @@ export default function NilaiManagement() {
   const { toast, showToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubjectSubmitting, setIsSubjectSubmitting] = useState(false);
   const [editingNilai, setEditingNilai] = useState<any>(null);
+  const [editingSubject, setEditingSubject] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     kurikulum_id: '',
@@ -27,11 +30,23 @@ export default function NilaiManagement() {
     date: new Date().toISOString().split('T')[0],
   });
 
+  const [subjectForm, setSubjectForm] = useState({
+    subject: '',
+    description: '',
+  });
+
   useEffect(() => { fetchInitialData(); }, []);
   useEffect(() => {
     if (selectedSantri) fetchNilai(selectedSantri);
     else { setNilai([]); setAbsensiSummary(null); }
   }, [selectedSantri]);
+
+  const fetchSubjects = async () => {
+    try {
+      const data = await dataService.getKurikulum();
+      setKurikulum(data);
+    } catch { showToast('Gagal memuat mata pelajaran', 'error'); }
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -91,6 +106,8 @@ export default function NilaiManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSantri) return showToast('Pilih santri terlebih dahulu', 'error');
+    if (!formData.kurikulum_id) return showToast('Pilih mata pelajaran terlebih dahulu', 'error');
+    if (!formData.score.trim()) return showToast('Nilai tidak boleh kosong', 'error');
     setIsSubmitting(true);
     try {
       const payload = { ...formData, score: Number(formData.score), santri_id: selectedSantri };
@@ -105,6 +122,47 @@ export default function NilaiManagement() {
       fetchNilai(selectedSantri);
     } catch { showToast('Gagal menyimpan nilai', 'error'); }
     finally { setIsSubmitting(false); }
+  };
+
+  const handleOpenSubjectModal = (subject?: any) => {
+    if (subject) {
+      setEditingSubject(subject);
+      setSubjectForm({
+        subject: subject.subject,
+        description: subject.description || '',
+      });
+    } else {
+      setEditingSubject(null);
+      setSubjectForm({ subject: '', description: '' });
+    }
+    setIsSubjectModalOpen(true);
+  };
+
+  const handleDeleteSubject = async (id: string, name: string) => {
+    if (!confirm(`Hapus mata pelajaran "${name}"?\n\nPerhatian: Nilai yang terhubung akan ikut terhapus.`)) return;
+    try {
+      await dataService.deleteKurikulum(id);
+      showToast('Mata pelajaran berhasil dihapus', 'success');
+      await fetchSubjects();
+    } catch { showToast('Gagal menghapus mata pelajaran', 'error'); }
+  };
+
+  const handleSubmitSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subjectForm.subject.trim()) return showToast('Nama mata pelajaran tidak boleh kosong', 'error');
+    setIsSubjectSubmitting(true);
+    try {
+      if (editingSubject) {
+        await dataService.updateKurikulum(editingSubject.id, subjectForm);
+        showToast('Mata pelajaran berhasil diperbarui', 'success');
+      } else {
+        await dataService.createKurikulum(subjectForm);
+        showToast('Mata pelajaran berhasil ditambahkan', 'success');
+      }
+      setIsSubjectModalOpen(false);
+      await fetchSubjects();
+    } catch { showToast('Gagal menyimpan mata pelajaran', 'error'); }
+    finally { setIsSubjectSubmitting(false); }
   };
 
   const selectedSantriData = santri.find(s => s.id === selectedSantri);
@@ -166,6 +224,45 @@ export default function NilaiManagement() {
               <div className="text-xs text-slate-500">Total nilai: <span className="font-semibold text-slate-700">{nilai.length} mata pelajaran</span></div>
             </div>
           )}
+
+          <div className="card p-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <BookOpen size={18} className="text-slate-400" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Mata Pelajaran</p>
+                  <p className="text-xs text-slate-400">Kelola daftar mata pelajaran tanpa pindah halaman.</p>
+                </div>
+              </div>
+              <button onClick={() => handleOpenSubjectModal()} className="btn-secondary text-xs px-3 py-1.5">Tambah</button>
+            </div>
+            {kurikulum.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+                Belum ada mata pelajaran. Tambahkan terlebih dahulu agar nilai dapat diinput.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                {kurikulum.map((subject) => (
+                  <div key={subject.id} className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{subject.subject}</p>
+                      <p className="text-xs text-slate-500 truncate mt-1">{subject.description || 'Tanpa keterangan'}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => handleOpenSubjectModal(subject)}
+                        className="text-slate-400 hover:text-[#1e3a5f] rounded-lg p-2 transition-colors">
+                        <Edit2 size={14} />
+                      </button>
+                      <button onClick={() => handleDeleteSubject(subject.id, subject.subject)}
+                        className="text-slate-400 hover:text-red-500 rounded-lg p-2 transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Ringkasan Absensi */}
           {selectedSantri && absensiSummary && (
@@ -272,7 +369,7 @@ export default function NilaiManagement() {
             <label className="form-label">Mata Pelajaran</label>
             {kurikulum.length === 0 ? (
               <div className="p-3 bg-amber-50 text-amber-700 text-sm rounded-lg border border-amber-100">
-                ⚠️ Belum ada mata pelajaran. Tambahkan dulu di menu <strong>Mata Pelajaran</strong>.
+                ⚠️ Belum ada mata pelajaran. Tambahkan dulu di panel Mata Pelajaran.
               </div>
             ) : (
               <select required className="input-field" value={formData.kurikulum_id}
@@ -304,6 +401,41 @@ export default function NilaiManagement() {
             <button type="submit" disabled={isSubmitting || kurikulum.length === 0} className="btn-primary flex-1">
               {isSubmitting ? <Loader2 size={15} className="animate-spin" /> : null}
               {isSubmitting ? 'Menyimpan...' : 'Simpan Nilai'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isSubjectModalOpen} onClose={() => setIsSubjectModalOpen(false)}
+        title={editingSubject ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran Baru'}>
+        <form onSubmit={handleSubmitSubject} className="space-y-4">
+          <div>
+            <label className="form-label">Nama Mata Pelajaran</label>
+            <input
+              type="text"
+              required
+              className="input-field"
+              placeholder="Contoh: Fiqih, Nahwu, Al-Qur'an..."
+              value={subjectForm.subject}
+              onChange={(e) => setSubjectForm({ ...subjectForm, subject: e.target.value })}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="form-label">Deskripsi <span className="text-slate-400 font-normal">(opsional)</span></label>
+            <textarea
+              className="input-field"
+              rows={3}
+              placeholder="Keterangan singkat..."
+              value={subjectForm.description}
+              onChange={(e) => setSubjectForm({ ...subjectForm, description: e.target.value })}
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={() => setIsSubjectModalOpen(false)} className="btn-secondary flex-1">Batal</button>
+            <button type="submit" disabled={isSubjectSubmitting} className="btn-primary flex-1">
+              {isSubjectSubmitting ? <Loader2 size={15} className="animate-spin" /> : null}
+              {isSubjectSubmitting ? 'Menyimpan...' : editingSubject ? 'Simpan Mapel' : 'Tambah Mapel'}
             </button>
           </div>
         </form>

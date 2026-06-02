@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { dataService } from '../../services/data';
-import { Info, BookOpen, Clock, Wallet, CheckCircle2, Award, ChevronDown, UserCircle } from 'lucide-react';
+import { Info, BookOpen, Clock, Wallet, CheckCircle2, Award, ChevronDown, UserCircle, Calendar, MapPin } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -10,19 +10,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 
 export default function WaliDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [santri, setSantri] = useState<any[]>([]);
   const [selectedSantri, setSelectedSantri] = useState<any>(null);
   const [tahfidzStats, setTahfidzStats] = useState<any[]>([]);
   const [financeStatus, setFinanceStatus] = useState<string>('Lunas');
+  const [upcomingAgenda, setUpcomingAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchSantri(); }, []);
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchSantri();
+  }, [user?.id]);
 
   const fetchSantri = async () => {
+    if (!user?.id) return;
     try {
-      const { data, error } = await supabase.from('santri').select('*').eq('wali_id', user?.id);
+      const { data, error } = await supabase.from('santri').select('*').eq('wali_id', user.id);
       if (error) throw error;
       setSantri(data || []);
       if (data && data.length > 0) {
@@ -30,6 +35,7 @@ export default function WaliDashboard() {
         fetchProgres(data[0].id);
         fetchFinance(data[0].id);
       }
+      fetchUpcomingAgenda();
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
   };
@@ -47,7 +53,15 @@ export default function WaliDashboard() {
     } catch (error) { console.error(error); }
   };
 
-  if (loading) return <div className="flex h-96 items-center justify-center text-slate-400">Memuat data ananda...</div>;
+  const fetchUpcomingAgenda = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase.from('agenda').select('*').gte('date', today).order('date', { ascending: true }).limit(3);
+      setUpcomingAgenda(data || []);
+    } catch (error) { console.error(error); }
+  };
+
+  if (authLoading || loading) return <div className="flex h-96 items-center justify-center text-slate-400">Memuat data ananda...</div>;
 
   return (
     <div className="space-y-6 pb-10">
@@ -83,37 +97,36 @@ export default function WaliDashboard() {
       ) : (
         <>
           {/* Profile Card */}
-          <div className="card p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 bg-gradient-to-br from-[#1e3a5f] to-slate-900 text-white relative overflow-hidden">
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white/10 bg-white/5 flex items-center justify-center flex-shrink-0 z-10 overflow-hidden">
+          <div className="card p-4 md:p-6 lg:p-8 flex flex-col md:flex-row items-center gap-4 md:gap-5 lg:gap-6 bg-gradient-to-br from-[#1e3a5f] to-slate-900 text-white relative overflow-hidden">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white/10 bg-white/5 flex items-center justify-center flex-shrink-0 z-10 overflow-hidden">
               {selectedSantri.photo_url ? (
                 <img src={selectedSantri.photo_url} alt={selectedSantri.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                <span className="text-4xl font-bold">{selectedSantri.name.charAt(0)}</span>
+                <span className="text-2xl md:text-3xl font-bold">{selectedSantri.name.charAt(0)}</span>
               )}
             </div>
-            
-            <div className="text-center md:text-left z-10 flex-1">
-              <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
-                <h2 className="text-2xl md:text-3xl font-bold">{selectedSantri.name}</h2>
-                <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm">
+            <div className="text-center md:text-left z-10 flex-1 min-w-0">
+              <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-2 md:gap-3 mb-1 md:mb-2">
+                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{selectedSantri.name}</h2>
+                <span className="inline-block px-3 py-1 bg-white/10 rounded-full text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm flex-shrink-0">
                   Kelas {selectedSantri.class_name}
                 </span>
               </div>
-              <p className="text-slate-300 text-sm font-mono mb-6">NIS: {selectedSantri.nis}</p>
-              
-              <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+              <p className="text-slate-300 text-xs md:text-sm font-mono mb-4 md:mb-5">NIS: {selectedSantri.nis}</p>
+
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center md:justify-start">
                 <button onClick={() => navigate(`/wali/ijazah/${selectedSantri.id}`)}
-                  className="px-5 py-2.5 bg-white text-slate-900 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors flex items-center shadow-sm">
-                  <Award size={15} className="mr-2" /> Lihat Ijazah
+                  className="px-4 py-2 bg-white text-slate-900 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors flex items-center shadow-sm">
+                  <Award size={15} className="mr-1.5" /> Lihat Ijazah
                 </button>
                 <button onClick={() => navigate(`/wali/profil`)}
-                  className="px-5 py-2.5 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold hover:bg-white/20 transition-colors flex items-center backdrop-blur-sm">
+                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold hover:bg-white/20 transition-colors flex items-center backdrop-blur-sm">
                   Update Profil
                 </button>
               </div>
             </div>
 
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -202,6 +215,59 @@ export default function WaliDashboard() {
             <div className="p-3 border-t border-slate-50 sm:hidden">
               <Link to="/wali/hafalan" className="btn-secondary w-full justify-center text-xs">
                 Lihat Semua Riwayat
+              </Link>
+            </div>
+          </div>
+
+          {/* Agenda Section */}
+          <div className="card overflow-hidden">
+            <div className="p-5 border-b border-slate-50 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Agenda Mendatang</h3>
+                <p className="text-xs text-slate-500 mt-1">Kegiatan dan acara pesantren</p>
+              </div>
+              <Link to="/wali/agenda" className="btn-secondary text-xs px-3 py-1.5 hidden sm:flex">
+                Lihat Semua <Calendar size={13} className="ml-1" />
+              </Link>
+            </div>
+            <div className="p-5">
+              {upcomingAgenda.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingAgenda.map((item) => (
+                    <motion.div key={item.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                      <div className="w-12 h-12 bg-[#1e3a5f] text-white rounded-xl flex flex-col items-center justify-center shadow-sm flex-shrink-0">
+                        <span className="text-[9px] uppercase font-semibold opacity-80">
+                          {format(new Date(item.date + 'T12:00:00'), 'MMM', { locale: localeId })}
+                        </span>
+                        <span className="text-base font-bold leading-none">
+                          {format(new Date(item.date + 'T12:00:00'), 'dd')}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">{item.title}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[10px] text-slate-500 font-medium flex items-center">
+                            <Clock size={11} className="mr-1" />{item.time || 'Belum ditentukan'} WIB
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium flex items-center truncate">
+                            <MapPin size={11} className="mr-1 flex-shrink-0" />{item.location || 'Lokasi belum ditentukan'}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <Calendar size={36} className="mx-auto text-slate-200 mb-3" />
+                  <p className="text-sm text-slate-400 font-medium">Belum ada agenda mendatang</p>
+                </div>
+              )}
+            </div>
+            <div className="p-3 border-t border-slate-50 sm:hidden">
+              <Link to="/wali/agenda" className="btn-secondary w-full justify-center text-xs">
+                Lihat Semua Agenda
               </Link>
             </div>
           </div>
