@@ -115,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const applySession = (nextSession: Session | null) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
+      setSessionExpired(false);
       if (nextSession?.user) {
         setLoading(true);
         fetchRole(nextSession.user.id);
@@ -126,23 +127,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
-      if (!mounted) return;
-      if (error) {
-        console.error('Supabase Session Error:', error);
+      if (!mounted) { setLoading(false); return; }
+      if (error || !initialSession) {
+        supabase.auth.signOut().catch(() => {});
+        setSession(null);
+        setUser(null);
+        setRole(null);
+        setSessionExpired(error ? true : false);
         setLoading(false);
         return;
       }
       applySession(initialSession);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESH_FAILED') {
+        setSession(null);
+        setUser(null);
+        setRole(null);
+        setLoading(false);
+        setSessionExpired(false);
+        return;
+      }
       applySession(nextSession);
     });
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      authSubscription.unsubscribe();
       clearTimers();
     };
   }, [clearTimers]);

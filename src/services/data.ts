@@ -125,18 +125,43 @@ export const dataService = {
 
   // Dashboard Stats
   getDashboardStats: async () => {
-    const { count: santriCount } = await supabase.from('santri').select('*', { count: 'exact', head: true });
-    const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    const { data: recentTahfidz } = await supabase.from('tahfidz').select('*, santri(name)').limit(5).order('created_at', { ascending: false });
-    const { count: pendingTransactions } = await supabase.from('transactions').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
-    const { data: upcomingAgenda } = await supabase.from('agenda').select('*').gte('date', new Date().toISOString().split('T')[0]).limit(3).order('date');
-    
+    let santriCount = 0;
+    let userCount = 0;
+    let recentTahfidz: any[] = [];
+    let pendingTransactions = 0;
+    let upcomingAgenda: any[] = [];
+
+    try {
+      const { count } = await supabase.from('santri').select('*', { count: 'exact', head: true });
+      santriCount = count || 0;
+    } catch (err) { console.warn('Dashboard: santri count failed', err); }
+
+    try {
+      const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      userCount = count || 0;
+    } catch (err) { console.warn('Dashboard: profiles count failed', err); }
+
+    try {
+      const { data } = await supabase.from('tahfidz').select('*, santri(name)').limit(5).order('created_at', { ascending: false });
+      recentTahfidz = data || [];
+    } catch (err) { console.warn('Dashboard: tahfidz fetch failed', err); }
+
+    try {
+      const { count } = await supabase.from('transactions').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+      pendingTransactions = count || 0;
+    } catch (err) { console.warn('Dashboard: transactions count failed', err); }
+
+    try {
+      const { data } = await supabase.from('agenda').select('*').gte('date', new Date().toISOString().split('T')[0]).limit(3).order('date');
+      upcomingAgenda = data || [];
+    } catch (err) { console.warn('Dashboard: agenda fetch failed', err); }
+
     return {
-      santriCount: santriCount || 0,
-      userCount: userCount || 0,
-      recentTahfidz: recentTahfidz || [],
-      pendingTransactions: pendingTransactions || 0,
-      upcomingAgenda: upcomingAgenda || []
+      santriCount,
+      userCount,
+      recentTahfidz,
+      pendingTransactions,
+      upcomingAgenda
     };
   }
 };
