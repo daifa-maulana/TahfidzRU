@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { dataService } from '../../services/data';
-import { Info, BookOpen, Clock, Wallet, CheckCircle2, Award, ChevronDown, UserCircle, Calendar, MapPin } from 'lucide-react';
+import { Info, BookOpen, Clock, CheckCircle2, Award, ChevronDown, UserCircle, Calendar, MapPin } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -15,7 +15,6 @@ export default function WaliDashboard() {
   const [santri, setSantri] = useState<any[]>([]);
   const [selectedSantri, setSelectedSantri] = useState<any>(null);
   const [tahfidzStats, setTahfidzStats] = useState<any[]>([]);
-  const [financeStatus, setFinanceStatus] = useState<string>('Lunas');
   const [upcomingAgenda, setUpcomingAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +32,6 @@ export default function WaliDashboard() {
       if (data && data.length > 0) {
         setSelectedSantri(data[0]);
         fetchProgres(data[0].id);
-        fetchFinance(data[0].id);
       }
       fetchUpcomingAgenda();
     } catch (error) { console.error(error); }
@@ -45,19 +43,15 @@ export default function WaliDashboard() {
     catch (error) { console.error(error); }
   };
 
-  const fetchFinance = async (id: string) => {
-    try {
-      const { data } = await supabase.from('transactions').select('*').eq('santri_id', id).eq('type', 'SPP Bulanan').order('date', { ascending: false }).limit(1);
-      if (data && data.length > 0) setFinanceStatus(data[0].status === 'Paid' ? 'Lunas' : 'Menunggu');
-      else setFinanceStatus('Belum Tagihan');
-    } catch (error) { console.error(error); }
-  };
-
   const fetchUpcomingAgenda = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data } = await supabase.from('agenda').select('*').gte('date', today).order('date', { ascending: true }).limit(3);
-      setUpcomingAgenda(data || []);
+      const normalized = (data || []).map(item => ({
+        ...item,
+        date: typeof item.date === 'string' ? item.date : String(item.date || '')
+      }));
+      setUpcomingAgenda(normalized);
     } catch (error) { console.error(error); }
   };
 
@@ -75,7 +69,7 @@ export default function WaliDashboard() {
             <select className="input-field appearance-none pr-9 min-w-[200px]"
               onChange={(e) => {
                 const s = santri.find(x => x.id === e.target.value);
-                setSelectedSantri(s); fetchProgres(s.id); fetchFinance(s.id);
+                setSelectedSantri(s); fetchProgres(s.id);
               }}>
               {santri.map(s => <option key={s.id} value={s.id}>{s.name} ({s.nis})</option>)}
             </select>
@@ -129,7 +123,7 @@ export default function WaliDashboard() {
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="card p-5 flex items-start gap-4">
               <div className="w-12 h-12 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Clock size={20} />
@@ -150,18 +144,6 @@ export default function WaliDashboard() {
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Setoran Baru</p>
                 <h3 className="text-lg font-bold text-slate-800 line-clamp-1">
                   {tahfidzStats.find(x => x.type === 'Setoran Baru')?.surah || 'Belum ada'}
-                </h3>
-              </div>
-            </div>
-
-            <div className="card p-5 flex items-start gap-4">
-              <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Wallet size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Status SPP</p>
-                <h3 className={cn("text-lg font-bold", financeStatus === 'Lunas' ? "text-emerald-600" : "text-amber-500")}>
-                  {financeStatus}
                 </h3>
               </div>
             </div>
@@ -196,7 +178,7 @@ export default function WaliDashboard() {
                             </div>
                           </div>
                           <span className="text-[10px] text-slate-400 font-medium">
-                            {format(new Date(item.created_at), 'dd MMM yyyy', { locale: localeId })}
+                             {format(new Date(item.created_at || '2026-01-01T00:00:00'), 'dd MMM yyyy', { locale: localeId })}
                           </span>
                        </div>
                        {item.note && (
@@ -231,39 +213,50 @@ export default function WaliDashboard() {
               </Link>
             </div>
             <div className="p-5">
-              {upcomingAgenda.length > 0 ? (
-                <div className="space-y-3">
-                  {upcomingAgenda.map((item) => (
-                    <motion.div key={item.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="w-12 h-12 bg-[#1e3a5f] text-white rounded-xl flex flex-col items-center justify-center shadow-sm flex-shrink-0">
-                        <span className="text-[9px] uppercase font-semibold opacity-80">
-                          {format(new Date(item.date + 'T12:00:00'), 'MMM', { locale: localeId })}
-                        </span>
-                        <span className="text-base font-bold leading-none">
-                          {format(new Date(item.date + 'T12:00:00'), 'dd')}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800 truncate">{item.title}</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[10px] text-slate-500 font-medium flex items-center">
-                            <Clock size={11} className="mr-1" />{item.time || 'Belum ditentukan'} WIB
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-medium flex items-center truncate">
-                            <MapPin size={11} className="mr-1 flex-shrink-0" />{item.location || 'Lokasi belum ditentukan'}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10">
-                  <Calendar size={36} className="mx-auto text-slate-200 mb-3" />
-                  <p className="text-sm text-slate-400 font-medium">Belum ada agenda mendatang</p>
-                </div>
-              )}
+              {(() => {
+                const items = (upcomingAgenda || []).filter((item: any) => item.date);
+                if (items.length === 0) {
+                  return (
+                    <div className="text-center py-10">
+                      <Calendar size={36} className="mx-auto text-slate-200 mb-3" />
+                      <p className="text-sm text-slate-400 font-medium">Belum ada agenda mendatang</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    {items.map((item: any) => {
+                      const rawDate = typeof item.date === 'string' ? item.date.split('T')[0] : String(item.date);
+                      const d = new Date(rawDate + 'T00:00:00');
+                      if (isNaN(d.getTime())) return null;
+                      return (
+                        <motion.div key={item.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all min-w-0">
+                          <div className="w-12 h-12 bg-[#1e3a5f] text-white rounded-xl flex flex-col items-center justify-center shadow-sm flex-shrink-0">
+                            <span className="text-[9px] uppercase font-semibold opacity-80">
+                              {format(d, 'MMM', { locale: localeId })}
+                            </span>
+                            <span className="text-base font-bold leading-none">
+                              {format(d, 'dd')}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-800 truncate">{item.title}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-[10px] text-slate-500 font-medium flex items-center">
+                                <Clock size={11} className="mr-1" />{item.time || 'Belum ditentukan'} WIB
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-medium flex items-center truncate">
+                                <MapPin size={11} className="mr-1 flex-shrink-0" />{item.location || 'Lokasi belum ditentukan'}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
             <div className="p-3 border-t border-slate-50 sm:hidden">
               <Link to="/wali/agenda" className="btn-secondary w-full justify-center text-xs">

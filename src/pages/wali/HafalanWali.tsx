@@ -8,6 +8,15 @@ import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { motion } from 'motion/react';
 
+const safeDate = (dateStr: string) => {
+  try {
+    if (!dateStr) return new Date();
+    if (typeof dateStr !== 'string') return new Date();
+    if (dateStr.includes('T')) return new Date(dateStr);
+    return new Date(dateStr + 'T00:00:00');
+  } catch { return new Date(); }
+};
+
 export default function HafalanWali() {
   const { user, loading: authLoading } = useAuth();
   const [santri, setSantri] = useState<any[]>([]);
@@ -96,7 +105,7 @@ export default function HafalanWali() {
                       </div>
                     </div>
                     <span className="text-xs text-slate-400 font-medium">
-                      {format(new Date(item.created_at), 'dd MMM yyyy', { locale: localeId })}
+                      {(() => { try { return format(safeDate(item.created_at), 'dd MMM yyyy', { locale: localeId }); } catch { return ''; } })()}
                     </span>
                   </div>
                   

@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { Users, BookOpen, Clock, Wallet, ChevronRight, Calendar, TrendingUp } from 'lucide-react';
+import { Users, BookOpen, Clock, ChevronRight, Calendar, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '../../utils/cn';
 import { Link } from 'react-router-dom';
+
+const safeDate = (dateStr: string) => {
+  try {
+    if (!dateStr) return null;
+    if (dateStr.includes('T')) return new Date(dateStr);
+    return new Date(dateStr + 'T00:00:00');
+  } catch { return null; }
+};
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -44,20 +52,12 @@ export default function AdminDashboard() {
     },
     {
       label: 'Setoran Hari Ini',
-      value: stats?.recentTahfidz?.length || 0,
-      icon: BookOpen,
-      color: 'bg-emerald-50 text-emerald-600',
-      iconBg: 'bg-emerald-100',
-      trend: 'Tahfidz masuk'
-    },
-    {
-      label: 'Tagihan Pending',
-      value: stats?.pendingTransactions || 0,
-      icon: Wallet,
-      color: 'bg-amber-50 text-amber-600',
-      iconBg: 'bg-amber-100',
-      trend: 'Perlu diproses'
-    },
+       value: stats?.recentTahfidz?.length || 0,
+       icon: BookOpen,
+       color: 'bg-emerald-50 text-emerald-600',
+       iconBg: 'bg-emerald-100',
+       trend: 'Tahfidz masuk'
+     },
   ];
 
   if (loading) {
@@ -171,23 +171,30 @@ export default function AdminDashboard() {
             <h3 className="section-title">Agenda Mendatang</h3>
           </div>
           <div className="p-4 space-y-3">
-            {stats?.upcomingAgenda?.length > 0 ? (
-              stats.upcomingAgenda.map((item: any) => (
-                <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                  <div className="flex-shrink-0 w-11 h-11 bg-[#1e3a5f]/5 rounded-xl flex flex-col items-center justify-center border border-[#1e3a5f]/10">
-                    <span className="text-[8px] font-semibold text-[#1e3a5f] uppercase leading-none">
-                      {format(new Date(item.date + 'T12:00:00'), 'MMM', { locale: id })}
-                    </span>
-                    <span className="text-base font-bold text-[#1e3a5f] leading-tight">
-                      {format(new Date(item.date + 'T12:00:00'), 'dd')}
-                    </span>
-                  </div>
-                  <div className="min-w-0 pt-0.5">
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight truncate">{item.title}</h4>
-                    <p className="text-xs text-slate-400 mt-0.5 truncate">{item.location || 'Area Pesantren'}</p>
-                  </div>
-                </div>
-              ))
+            {(stats?.upcomingAgenda || []).filter((item: any) => item.date).length > 0 ? (
+              <div className="space-y-3">
+                {(stats?.upcomingAgenda || []).filter((item: any) => item.date).map((item: any) => {
+                  const rawDate = typeof item.date === 'string' ? item.date.split('T')[0] : String(item.date);
+                  const d = new Date(rawDate + 'T00:00:00');
+                  if (isNaN(d.getTime())) return null;
+                  return (
+                    <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                      <div className="flex-shrink-0 w-11 h-11 bg-[#1e3a5f]/5 rounded-xl flex flex-col items-center justify-center border border-[#1e3a5f]/10">
+                        <span className="text-[8px] font-semibold text-[#1e3a5f] uppercase leading-none">
+                          {format(d, 'MMM', { locale: id })}
+                        </span>
+                        <span className="text-base font-bold text-[#1e3a5f] leading-tight">
+                          {format(d, 'dd')}
+                        </span>
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <h4 className="text-sm font-semibold text-slate-800 leading-tight truncate">{item.title}</h4>
+                        <p className="text-xs text-slate-400 mt-0.5 truncate">{item.location || 'Area Pesantren'}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <div className="text-center py-8">
                 <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-slate-100">

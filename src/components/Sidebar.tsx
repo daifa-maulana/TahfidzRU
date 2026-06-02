@@ -6,7 +6,6 @@ import {
   BookOpen, 
   ClipboardCheck, 
   GraduationCap, 
-  Wallet, 
   Settings, 
   LogOut,
   UserCheck,
@@ -36,7 +35,6 @@ export function Sidebar({ role, onClose }: SidebarProps) {
       { path: '/admin/absensi', icon: ClipboardCheck, label: 'Rekap Presensi' },
       { path: '/admin/tahfidz', icon: BookOpen, label: 'Buku Tahfidz' },
       { path: '/admin/nilai', icon: GraduationCap, label: 'Nilai Akademik' },
-      { path: '/admin/keuangan', icon: Wallet, label: 'Sistem Keuangan' },
       { path: '/admin/agenda', icon: Calendar, label: 'Agenda Acara' },
       { path: '/admin/approval', icon: UserCheck, label: 'Persetujuan Akun' },
     ],
@@ -49,7 +47,6 @@ export function Sidebar({ role, onClose }: SidebarProps) {
       { path: '/wali', icon: LayoutDashboard, label: 'Beranda' },
       { path: '/wali/absensi', icon: ClipboardCheck, label: 'Kehadiran Ananda' },
       { path: '/wali/hafalan', icon: BookOpen, label: 'Perkembangan Hafalan' },
-      { path: '/wali/keuangan', icon: Wallet, label: 'Status SPP' },
       { path: '/wali/agenda', icon: Calendar, label: 'Jadwal Acara' },
       { path: '/wali/profil', icon: Users, label: 'Profil Lengkap' },
     ]

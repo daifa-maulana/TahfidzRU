@@ -118,7 +118,13 @@ export const dataService = {
   deleteNilai: (id: string) => handleResponse(supabase.from('nilai').delete().eq('id', id)),
 
   // Agenda
-  getAgenda: () => handleResponse(supabase.from('agenda').select('*').order('date', { ascending: true })),
+  normalizeAgenda: (items: any[]) => (items || []).map((item: any) => ({
+    ...item,
+    date: typeof item.date === 'string' ? item.date.split('T')[0] : String(item.date || '')
+  })),
+  getAgenda: () => handleResponse(
+    supabase.from('agenda').select('*').order('date', { ascending: true })
+  ).then(data => dataService.normalizeAgenda(data)),
   createAgenda: (data: any) => handleResponse(supabase.from('agenda').insert(data)),
   updateAgenda: (id: string, data: any) => handleResponse(supabase.from('agenda').update(data).eq('id', id)),
   deleteAgenda: (id: string) => handleResponse(supabase.from('agenda').delete().eq('id', id)),
@@ -153,7 +159,7 @@ export const dataService = {
 
     try {
       const { data } = await supabase.from('agenda').select('*').gte('date', new Date().toISOString().split('T')[0]).limit(3).order('date');
-      upcomingAgenda = data || [];
+      upcomingAgenda = dataService.normalizeAgenda(data);
     } catch (err) { console.warn('Dashboard: agenda fetch failed', err); }
 
     return {

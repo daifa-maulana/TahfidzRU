@@ -8,6 +8,15 @@ import { id as localeId } from 'date-fns/locale';
 import { motion } from 'motion/react';
 import { ABSENSI_SESSIONS } from '../../constants/absensi';
 
+const safeDate = (dateStr: string) => {
+  try {
+    if (!dateStr) return new Date();
+    if (typeof dateStr !== 'string') return new Date();
+    if (dateStr.includes('T')) return new Date(dateStr);
+    return new Date(dateStr + 'T00:00:00');
+  } catch { return new Date(); }
+};
+
 export default function AbsensiWali() {
   const { user, loading: authLoading } = useAuth();
   const [santri, setSantri] = useState<any[]>([]);
@@ -43,7 +52,8 @@ export default function AbsensiWali() {
   if (authLoading || loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>;
 
   const groupedByDate = absensi.reduce<Record<string, typeof absensi>>((acc, item) => {
-    const key = item.date;
+    const key = typeof item.date === 'string' ? item.date.split('T')[0] : item.date ? String(item.date) : '';
+    if (!key) return acc;
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
@@ -91,7 +101,7 @@ export default function AbsensiWali() {
                 <motion.div key={dateKey} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
                   <p className="text-sm font-bold text-slate-800 mb-3">
-                    {format(new Date(dateKey + 'T00:00:00'), 'EEEE, dd MMM yyyy', { locale: localeId })}
+                    {format(safeDate(dateKey), 'EEEE, dd MMM yyyy', { locale: localeId })}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {ABSENSI_SESSIONS.map((sesi) => {
