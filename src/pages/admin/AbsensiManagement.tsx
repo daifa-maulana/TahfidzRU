@@ -283,15 +283,15 @@ export default function AbsensiManagement() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-5 py-3 min-w-0">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                           {statusOptions.map((st) => (
-                            <label key={st.id} className="cursor-pointer">
+                            <label key={st.id} className="cursor-pointer w-full sm:w-auto">
                               <input type="radio" name={`absensi-${s.id}-${selectedSession}`} className="sr-only peer"
                                 checked={absensi[s.id] === st.id}
                                 onChange={() => setAbsensi(prev => ({ ...prev, [s.id]: st.id }))} />
                               <div className={cn(
-                                "min-w-[60px] px-2 py-2 flex flex-col items-center justify-center rounded-xl border text-xs font-bold transition-all active:scale-95",
+                                "sm:min-w-[60px] px-2 py-2 flex flex-col items-center justify-center rounded-xl border text-xs font-bold transition-all active:scale-95",
                                 st.color)}>
                                 {st.id}
                               </div>
