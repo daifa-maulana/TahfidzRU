@@ -24,13 +24,13 @@ export const FALLBACK_HERO_SLIDES: HeroSlide[] = [
   {
     type: 'image',
     src: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&q=80&w=1920',
-    alt: 'Kegiatan tahfidz santri putra',
+    alt: 'Kegiatan tahfidz santri putri',
     caption: 'Program tahfidz intensif dengan bimbingan ustadz berpengalaman',
   },
   {
     type: 'image',
     src: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=1920',
-    alt: 'Kajian kitab kuning santri putra',
+    alt: 'Kajian kitab kuning santri putri',
     caption: 'Integrasi ilmu diniyah salaf dan pendidikan tahfidz mutqin',
   },
   {

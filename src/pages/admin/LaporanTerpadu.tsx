@@ -7,6 +7,14 @@ import { id } from 'date-fns/locale';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { cn } from '../../utils/cn';
+import {
+  CAMPUS_ABSENSI_SESSIONS,
+  CAMPUS_GENDER,
+  CAMPUS_GENDER_LABEL,
+  CAMPUS_LABEL,
+  createEmptySessionStats,
+  type CampusAbsensiSession,
+} from '../../constants/campus';
 
 export default function LaporanTerpadu() {
   const [reportType, setReportType] = useState<'keseluruhan' | 'satu-santri' | 'rekap-presensi' | 'rekap-setoran'>('keseluruhan');
@@ -52,20 +60,17 @@ export default function LaporanTerpadu() {
   const classes = ['All', ...new Set(santriList.map(s => s.class_name).filter(Boolean))];
 
   // Process data per student
+  const thirdSession = CAMPUS_ABSENSI_SESSIONS[2];
+
   const processedData = santriList
+    .filter(s => s.gender === CAMPUS_GENDER)
     .filter(s => selectedClass === 'All' || s.class_name === selectedClass)
     .map(student => {
-      // Filter student's attendance records
       const studentAbsensi = absensiLogs.filter(a => a.santri_id === student.id);
-      
-      const attendanceSummary = {
-        Shubuh: { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 },
-        Ashar: { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 },
-        Maghrib: { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 }
-      };
+      const attendanceSummary = createEmptySessionStats();
 
       studentAbsensi.forEach(a => {
-        const session = a.session as 'Shubuh' | 'Ashar' | 'Maghrib';
+        const session = a.session as CampusAbsensiSession;
         if (attendanceSummary[session]) {
           attendanceSummary[session].total++;
           if (a.status === 'Hadir') attendanceSummary[session].hadir++;
@@ -152,7 +157,7 @@ export default function LaporanTerpadu() {
     processedData.forEach((row, idx) => {
       const shubuh = `${row.attendanceSummary.Shubuh.hadir}/${row.attendanceSummary.Shubuh.total}`;
       const ashar = `${row.attendanceSummary.Ashar.hadir}/${row.attendanceSummary.Ashar.total}`;
-      const maghrib = `${row.attendanceSummary.Maghrib.hadir}/${row.attendanceSummary.Maghrib.total}`;
+      const thirdSess = `${row.attendanceSummary[thirdSession].hadir}/${row.attendanceSummary[thirdSession].total}`;
       
       const latestStr = row.latestSetoran 
         ? `${row.latestSetoran.surah} Halaman ${row.latestSetoran.from_ayat}-${row.latestSetoran.to_ayat} (${row.latestSetoran.fluency})` 
@@ -168,7 +173,7 @@ export default function LaporanTerpadu() {
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${levelStr}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${shubuh}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${ashar}</td>
-          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${maghrib}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${thirdSess}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${row.setoranBaruCount} / ${row.murojaahCount}</td>
           <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${latestStr}</td>
         </tr>
@@ -192,7 +197,7 @@ export default function LaporanTerpadu() {
       <body>
         <h2>LAPORAN PERKEMBANGAN SANTRI TERPADU</h2>
         <h3>PONDOK PESANTREN ROUDHLATUL ULUM</h3>
-        <p style="text-align: center; font-weight: bold;">Periode: ${periodLabel} | Rombel: ${selectedClass === 'All' ? 'Semua Kelas' : selectedClass} (Santri Putra)</p>
+        <p style="text-align: center; font-weight: bold;">Periode: ${periodLabel} | Rombel: ${selectedClass === 'All' ? 'Semua Kelas' : selectedClass} (Santri ${CAMPUS_LABEL})</p>
         
         <table>
           <thead>
@@ -207,7 +212,7 @@ export default function LaporanTerpadu() {
             <tr>
               <th>Shubuh</th>
               <th>Ashar</th>
-              <th>Maghrib</th>
+              <th>${thirdSession}</th>
               <th>Baru / Murojaah</th>
               <th>Setoran Terakhir</th>
             </tr>
@@ -240,14 +245,14 @@ export default function LaporanTerpadu() {
     const periodLabel = getPeriodLabel();
     const shubuh = student.attendanceSummary.Shubuh;
     const ashar = student.attendanceSummary.Ashar;
-    const maghrib = student.attendanceSummary.Maghrib;
+    const thirdSessData = student.attendanceSummary[thirdSession];
 
     const shubuhStr = `${shubuh.hadir}/${shubuh.total}`;
     const asharStr = `${ashar.hadir}/${ashar.total}`;
-    const maghribStr = `${maghrib.hadir}/${maghrib.total}`;
+    const thirdSessStr = `${thirdSessData.hadir}/${thirdSessData.total}`;
 
-    const totalHadir = shubuh.hadir + ashar.hadir + maghrib.hadir;
-    const totalSession = shubuh.total + ashar.total + maghrib.total;
+    const totalHadir = shubuh.hadir + ashar.hadir + thirdSessData.hadir;
+    const totalSession = shubuh.total + ashar.total + thirdSessData.total;
     const attendancePercentage = totalSession > 0 ? Math.round((totalHadir / totalSession) * 100) : 0;
 
     let gradesRowsHtml = '';
@@ -331,7 +336,7 @@ export default function LaporanTerpadu() {
             <td>${student.type}</td>
             <td><strong>Jenis Kelamin</strong></td>
             <td>:</td>
-            <td>Laki-laki (Putra)</td>
+            <td>${CAMPUS_GENDER_LABEL}</td>
           </tr>
         </table>
 
@@ -365,12 +370,12 @@ export default function LaporanTerpadu() {
               <td style="text-align: center;">${ashar.total}</td>
             </tr>
             <tr>
-              <td style="text-align: center; font-weight: bold;">Maghrib</td>
-              <td style="text-align: center;">${maghrib.hadir}</td>
-              <td style="text-align: center;">${maghrib.izin}</td>
-              <td style="text-align: center;">${maghrib.sakit}</td>
-              <td style="text-align: center;">${maghrib.alpa}</td>
-              <td style="text-align: center;">${maghrib.total}</td>
+              <td style="text-align: center; font-weight: bold;">${thirdSession}</td>
+              <td style="text-align: center;">${thirdSessData.hadir}</td>
+              <td style="text-align: center;">${thirdSessData.izin}</td>
+              <td style="text-align: center;">${thirdSessData.sakit}</td>
+              <td style="text-align: center;">${thirdSessData.alpa}</td>
+              <td style="text-align: center;">${thirdSessData.total}</td>
             </tr>
             <tr style="background-color: #f9f9f9; font-weight: bold;">
               <td style="text-align: center;">Persentase Kehadiran</td>
@@ -721,7 +726,7 @@ export default function LaporanTerpadu() {
             <h3 className="text-lg font-bold text-[#1e3a5f] uppercase tracking-wider mt-0.5">PONDOK PESANTREN ROUDHLATUL ULUM</h3>
             <p className="text-xs text-slate-500 font-medium mt-1">Parongpong, Bandung Barat, Jawa Barat</p>
             <p className="text-xs font-extrabold text-slate-800 mt-2 bg-slate-100 px-3 py-1 inline-block rounded-full">
-              Periode: {getPeriodLabel()} {reportType !== 'satu-santri' && `| Rombel: ${selectedClass === 'All' ? 'Semua Kelas' : selectedClass}`} (Santri Putra)
+              Periode: {getPeriodLabel()} {reportType !== 'satu-santri' && `| Rombel: ${selectedClass === 'All' ? 'Semua Kelas' : selectedClass}`} (Santri {CAMPUS_LABEL})
             </p>
           </div>
 
@@ -747,7 +752,7 @@ export default function LaporanTerpadu() {
                     <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
                       <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Shubuh</th>
                       <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Ashar</th>
-                      <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Maghrib</th>
+                      <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">{thirdSession}</th>
                       <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Baru/Murojaah</th>
                       <th className="px-3 py-2 font-bold text-[9px] uppercase border border-slate-200">Setoran Terakhir</th>
                     </tr>
@@ -756,7 +761,7 @@ export default function LaporanTerpadu() {
                     {processedData.map((row, idx) => {
                       const shubuh = row.attendanceSummary.Shubuh;
                       const ashar = row.attendanceSummary.Ashar;
-                      const maghrib = row.attendanceSummary.Maghrib;
+                      const thirdSessRow = row.attendanceSummary[thirdSession];
 
                       return (
                         <tr key={row.id} className="hover:bg-slate-50/50">
@@ -785,8 +790,8 @@ export default function LaporanTerpadu() {
                             <span className="text-slate-400 font-light">/{ashar.total}</span>
                           </td>
                           <td className="px-2 py-3 text-center border border-slate-200">
-                            <span className="font-semibold text-slate-700">{maghrib.hadir}</span>
-                            <span className="text-slate-400 font-light">/{maghrib.total}</span>
+                            <span className="font-semibold text-slate-700">{thirdSessRow.hadir}</span>
+                            <span className="text-slate-400 font-light">/{thirdSessRow.total}</span>
                           </td>
                           <td className="px-2 py-3 text-center border border-slate-200 font-bold text-slate-700">
                             <span className="text-blue-600">{row.setoranBaruCount}</span>
@@ -817,7 +822,7 @@ export default function LaporanTerpadu() {
             ) : (
               <div className="text-center py-20 text-slate-400">
                 <Users size={40} className="mx-auto text-slate-200 mb-3" />
-                <p className="text-sm font-semibold">Tidak ada data santri putra ditemukan untuk rombel ini</p>
+                <p className="text-sm font-semibold">Tidak ada data santri {CAMPUS_LABEL.toLowerCase()} ditemukan untuk rombel ini</p>
               </div>
             )
           ) : reportType === 'satu-santri' ? (
@@ -853,7 +858,7 @@ export default function LaporanTerpadu() {
                     </div>
                     <div className="flex justify-between border-none">
                       <span className="text-slate-400">Jenis Kelamin</span>
-                      <span className="font-semibold text-slate-900">Laki-laki (Putra)</span>
+                      <span className="font-semibold text-slate-900">{CAMPUS_GENDER_LABEL}</span>
                     </div>
                   </div>
                 </div>
@@ -876,8 +881,8 @@ export default function LaporanTerpadu() {
                       </tr>
                     </thead>
                     <tbody className="text-slate-700">
-                      {['Shubuh', 'Ashar', 'Maghrib'].map(sessionKey => {
-                        const s = activeStudent.attendanceSummary[sessionKey as 'Shubuh' | 'Ashar' | 'Maghrib'];
+                      {CAMPUS_ABSENSI_SESSIONS.map(sessionKey => {
+                        const s = activeStudent.attendanceSummary[sessionKey];
                         return (
                           <tr key={sessionKey} className="hover:bg-slate-50/50">
                             <td className="px-3 py-2 border border-slate-200 font-bold text-center">{sessionKey}</td>
@@ -890,11 +895,8 @@ export default function LaporanTerpadu() {
                         );
                       })}
                       {(() => {
-                        const shubuh = activeStudent.attendanceSummary.Shubuh;
-                        const ashar = activeStudent.attendanceSummary.Ashar;
-                        const maghrib = activeStudent.attendanceSummary.Maghrib;
-                        const totHadir = shubuh.hadir + ashar.hadir + maghrib.hadir;
-                        const totSess = shubuh.total + ashar.total + maghrib.total;
+                        const totHadir = CAMPUS_ABSENSI_SESSIONS.reduce((sum, key) => sum + activeStudent.attendanceSummary[key].hadir, 0);
+                        const totSess = CAMPUS_ABSENSI_SESSIONS.reduce((sum, key) => sum + activeStudent.attendanceSummary[key].total, 0);
                         const percent = totSess > 0 ? Math.round((totHadir / totSess) * 100) : 0;
                         return (
                           <tr className="bg-slate-50 font-bold">

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import HeroSlider from '../components/HeroSlider';
+import { CAMPUS_FULL_NAME, CAMPUS_SUBTITLE } from '../constants/campus';
 
 const HIGHLIGHTS = [
   {
@@ -30,8 +31,8 @@ const HIGHLIGHTS = [
   },
   {
     icon: Users,
-    title: 'Khusus Santri Putra',
-    desc: 'Lingkungan khusus putra dengan pembinaan akhlak dan kedisiplinan Islami.',
+    title: 'Khusus Santri Putri',
+    desc: 'Lingkungan khusus putri dengan pembinaan akhlak dan kedisiplinan Islami.',
     color: 'bg-pesantren-yellow/20 text-[#7a6a00] border-pesantren-yellow/30',
   },
 ];
@@ -51,7 +52,7 @@ export default function Home() {
               Profil Pesantren
             </span>
             <h2 className="text-3xl md:text-4xl font-display font-black text-pesantren-dark mb-4">
-              Pondok Pesantren Roudlotul &apos;Ulum Tahfidz Putra
+              {CAMPUS_FULL_NAME}
             </h2>
             <p className="text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
               Berdiri di Cihanjuang, Parongpong, Kabupaten Bandung Barat di bawah naungan
@@ -106,7 +107,7 @@ export default function Home() {
                 <img src="/logo.png" alt="Logo" className="w-16 h-16 rounded-full bg-white p-1 shadow-lg object-contain" onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=RU&background=A4C95A&color=fff'; }} />
                 <div>
                   <span className="text-3xl font-display font-extrabold text-pesantren-dark tracking-tight">Roudlotul 'Ulum</span>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] block mt-1">Tahfidz Putra · Parongpong KBB</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] block mt-1">{CAMPUS_SUBTITLE}</span>
                 </div>
               </div>
               <p className="text-slate-600 font-medium leading-relaxed max-w-md mb-8">
@@ -146,7 +147,7 @@ export default function Home() {
           </div>
           
           <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500">
-            <p>© 2026 Pondok Pesantren Roudlotul 'Ulum Tahfidz Putra. Hak Cipta Dilindungi.</p>
+            <p>© 2026 {CAMPUS_FULL_NAME}. Hak Cipta Dilindungi.</p>
             <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full">
                <Shield size={16} className="text-pesantren-green" />
                <span>Sistem Terenkripsi & Aman</span>

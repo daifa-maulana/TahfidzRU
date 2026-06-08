@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { AbsensiSession } from '../constants/absensi';
+import { CAMPUS_GENDER } from '../constants/campus';
 
 const sanitizeSantriPayload = (data: Record<string, unknown>) => {
   const payload: Record<string, unknown> = {
@@ -7,7 +8,7 @@ const sanitizeSantriPayload = (data: Record<string, unknown>) => {
     nis: String(data.nis || '').trim(),
     class_name: String(data.class_name || '').trim() || null,
     type: data.type || 'Mukim',
-    gender: data.gender || 'L',
+    gender: data.gender || CAMPUS_GENDER,
     wali_id: data.wali_id ? data.wali_id : null,
     tahfidz_level: data.tahfidz_level || 'binnadzhor',
   };

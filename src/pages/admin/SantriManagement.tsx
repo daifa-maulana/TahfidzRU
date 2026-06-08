@@ -7,6 +7,7 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { Modal } from '../../components/Modal';
 import { useNavigate } from 'react-router-dom';
+import { CAMPUS_GENDER } from '../../constants/campus';
 
 export default function SantriManagement() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export default function SantriManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('Semua');
-  const [genderFilter, setGenderFilter] = useState('Semua');
+  const [genderFilter, setGenderFilter] = useState(CAMPUS_GENDER);
   const { toast, showToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,7 +25,7 @@ export default function SantriManagement() {
 
   const [formData, setFormData] = useState({
     name: '', nis: '', class_name: '', type: 'Mukim',
-    gender: 'L', wali_id: '', email: '', photo_url: '',
+    gender: CAMPUS_GENDER, wali_id: '', email: '', photo_url: '',
     tahfidz_level: 'binnadzhor'
   });
 
@@ -79,7 +80,7 @@ export default function SantriManagement() {
       const next = nises.length > 0 ? nises[0] + 1 : 1;
       setCurrentSantri(null);
       setFormData({ name: '', nis: next < 10 ? `0${next}` : `${next}`, class_name: '', type: 'Mukim',
-        gender: 'L', wali_id: '', email: '', photo_url: '', tahfidz_level: 'binnadzhor' });
+        gender: CAMPUS_GENDER, wali_id: '', email: '', photo_url: '', tahfidz_level: 'binnadzhor' });
     }
     setIsModalOpen(true);
   };

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, ChevronRight as ArrowRight, Star, Pause, Play, Loader2 } from 'lucide-react';
 import { FALLBACK_HERO_SLIDES, mapHeroFromDb, type HeroSlide } from '../constants/heroSlides';
 import { dataService } from '../services/data';
+import { CAMPUS_LABEL, CAMPUS_SUBTITLE } from '../constants/campus';
 
 const SLIDE_INTERVAL = 6000;
 
@@ -103,14 +104,14 @@ export default function HeroSlider() {
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-bold uppercase tracking-widest mb-6">
               <Star className="text-pesantren-yellow fill-pesantren-yellow" size={14} />
-              <span>Tahfidz Putra · Parongpong KBB</span>
+              <span>{CAMPUS_SUBTITLE}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black text-white leading-[1.08] tracking-tight mb-5">
               Pondok Pesantren{' '}
               <span className="text-pesantren-green">Roudlotul &apos;Ulum</span>
               <br />
-              <span className="text-pesantren-yellow">Tahfidz Putra</span>
+              <span className="text-pesantren-yellow">Tahfidz {CAMPUS_LABEL}</span>
             </h1>
 
             <p className="text-lg md:text-xl text-white/85 font-medium leading-relaxed mb-4 max-w-2xl">

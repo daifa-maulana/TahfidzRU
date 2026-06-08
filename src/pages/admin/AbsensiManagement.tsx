@@ -6,7 +6,8 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
-import { ABSENSI_SESSIONS, DEFAULT_ABSENSI_SESSION, type AbsensiSession, SESSION_GENDER_MAP } from '../../constants/absensi';
+import { ABSENSI_SESSIONS, DEFAULT_ABSENSI_SESSION, DEFAULT_GENDER_FILTER, type AbsensiSession, SESSION_GENDER_MAP } from '../../constants/absensi';
+import { CAMPUS_ABSENSI_SESSION_LABEL } from '../../constants/campus';
 
 export default function AbsensiManagement() {
   const [santri, setSantri] = useState<any[]>([]);
@@ -19,7 +20,7 @@ export default function AbsensiManagement() {
   const [selectedSession, setSelectedSession] = useState<AbsensiSession>(DEFAULT_ABSENSI_SESSION);
   const [selectedClass, setSelectedClass] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [genderFilter, setGenderFilter] = useState<'Semua' | 'L' | 'P'>('L');
+  const [genderFilter, setGenderFilter] = useState<'Semua' | 'L' | 'P'>(DEFAULT_GENDER_FILTER);
   const [recentDates, setRecentDates] = useState<any[]>([]);
   const { toast, showToast } = useToast();
 
@@ -124,7 +125,7 @@ export default function AbsensiManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-header">Presensi Santri</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Presensi per sesi: Shubuh, Ashar, Maghrib setiap hari</p>
+          <p className="text-sm text-slate-500 mt-0.5">Presensi per sesi: {CAMPUS_ABSENSI_SESSION_LABEL} setiap hari</p>
         </div>
         <div className="flex gap-2">
           <button onClick={setAllToHadir} className="btn-secondary">
@@ -222,7 +223,7 @@ export default function AbsensiManagement() {
           <div className="bg-[#1e3a5f] p-4 rounded-2xl text-white">
             <h4 className="text-sm font-bold mb-1">Panduan Presensi</h4>
             <p className="text-slate-100/80 text-xs leading-relaxed">
-              Isi presensi Shubuh, Ashar, dan Maghrib secara terpisah setiap hari agar wali santri dapat memantau kehadiran lengkap.
+              Isi presensi {CAMPUS_ABSENSI_SESSION_LABEL} secara terpisah setiap hari agar wali santri dapat memantau kehadiran lengkap.
             </p>
           </div>
         </div>

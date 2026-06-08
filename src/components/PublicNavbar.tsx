@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Menu, X } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { CAMPUS_SUBTITLE } from '../constants/campus';
 
 interface PublicNavbarProps {
   transparent?: boolean;
@@ -57,7 +58,7 @@ export default function PublicNavbar({ transparent = false }: PublicNavbarProps)
             <span className={cn(
               "text-[10px] font-bold uppercase tracking-[0.2em] block mt-1",
               isTransparent ? "text-pesantren-green" : "text-pesantren-blue"
-            )}>Tahfidz Putra · Parongpong</span>
+            )}>{CAMPUS_SUBTITLE}</span>
           </div>
         </Link>
 

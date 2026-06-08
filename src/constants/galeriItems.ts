@@ -12,7 +12,7 @@ export const FALLBACK_GALERI_ITEMS: GaleriItem[] = [
     title: 'Setoran Hafalan Santri',
     category: 'Kegiatan',
     image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&q=80&w=800',
-    description: 'Santri putra khusyuk menyetorkan hafalannya di hadapan ustadz pembimbing.',
+    description: 'Santri putri khusyuk menyetorkan hafalannya di hadapan ustadzah pembimbing.',
   },
   {
     id: '2',

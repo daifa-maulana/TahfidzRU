@@ -8,6 +8,7 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { Modal } from '../../components/Modal';
 import { motion } from 'motion/react';
+import { DEFAULT_GENDER_FILTER } from '../../constants/absensi';
 
 const SURAH_LIST = [
   "Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa'","Al-Ma'idah","Al-An'am","Al-A'raf","Al-Anfal","At-Tawbah","Yunus",
@@ -33,7 +34,7 @@ export default function TahfidzManagement() {
   const { toast, showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<any>(null);
-  const [genderFilter, setGenderFilter] = useState<'Semua' | 'L' | 'P'>('Semua');
+  const [genderFilter, setGenderFilter] = useState<'Semua' | 'L' | 'P'>(DEFAULT_GENDER_FILTER);
 
   const currentSantriObj = santri.find(s => s.id === selectedSantri);
   const isBilGhoib = currentSantriObj?.tahfidz_level === 'bilghoib';
