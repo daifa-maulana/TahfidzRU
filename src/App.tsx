@@ -13,14 +13,22 @@ import { WaliLayout } from './layouts/WaliLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import FiturPage from './pages/FiturPage';
+import TentangPage from './pages/TentangPage';
+import AgendaPage from './pages/AgendaPage';
+import GaleriPage from './pages/GaleriPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SantriManagement from './pages/admin/SantriManagement';
 import AbsensiManagement from './pages/admin/AbsensiManagement';
+import AbsensiRecap from './pages/admin/AbsensiRecap';
+import LaporanTerpadu from './pages/admin/LaporanTerpadu';
 import TahfidzManagement from './pages/admin/TahfidzManagement';
-import NilaiDevelopment from './pages/admin/NilaiDevelopment';
+import TahfidzRecap from './pages/admin/TahfidzRecap';
+import NilaiManagement from './pages/admin/NilaiManagement';
 import AgendaManagement from './pages/admin/AgendaManagement';
+import KontenManagement from './pages/admin/KontenManagement';
 import UserApproval from './pages/admin/UserApproval';
 import TahfidzDiploma from './pages/admin/TahfidzDiploma';
 
@@ -28,6 +36,7 @@ import TahfidzDiploma from './pages/admin/TahfidzDiploma';
 import PengajarDashboard from './pages/pengajar/PengajarDashboard';
 import AbsensiPengajar from './pages/pengajar/AbsensiPengajar';
 import TahfidzPengajar from './pages/pengajar/TahfidzPengajar';
+import AgendaPengajar from './pages/pengajar/AgendaPengajar';
 
 // Wali Pages
 import WaliDashboard from './pages/wali/WaliDashboard';
@@ -76,6 +85,10 @@ function AppContent() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/fitur" element={<FiturPage />} />
+        <Route path="/tentang" element={<TentangPage />} />
+        <Route path="/agenda" element={<AgendaPage />} />
+        <Route path="/galeri" element={<GaleriPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
@@ -85,9 +98,13 @@ function AppContent() {
             <Route index element={<AdminDashboard />} />
             <Route path="santri" element={<SantriManagement />} />
             <Route path="absensi" element={<AbsensiManagement />} />
+            <Route path="absensi-rekap" element={<AbsensiRecap />} />
+            <Route path="rekap-laporan" element={<LaporanTerpadu />} />
             <Route path="tahfidz" element={<TahfidzManagement />} />
-            <Route path="nilai" element={<NilaiDevelopment />} />
+            <Route path="tahfidz-rekap" element={<TahfidzRecap />} />
+            <Route path="nilai" element={<NilaiManagement />} />
             <Route path="agenda" element={<AgendaManagement />} />
+            <Route path="konten" element={<KontenManagement />} />
             <Route path="ijazah/:id" element={<TahfidzDiploma />} />
             <Route path="approval" element={<UserApproval />} />
           </Route>
@@ -99,6 +116,7 @@ function AppContent() {
             <Route index element={<PengajarDashboard />} />
             <Route path="absensi" element={<AbsensiPengajar />} />
             <Route path="tahfidz" element={<TahfidzPengajar />} />
+            <Route path="agenda" element={<AgendaPengajar />} />
           </Route>
         </Route>
 

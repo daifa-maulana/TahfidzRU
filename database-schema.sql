@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS santri (
     email TEXT,
     wali_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
     photo_url TEXT,
+    tahfidz_level TEXT DEFAULT 'binnadzhor' CHECK (tahfidz_level IN ('binnadzhor', 'bilghoib')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS absensi (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
     date DATE DEFAULT CURRENT_DATE,
-    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib')),
+    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib', 'Isya')),
     status TEXT CHECK (status IN ('Hadir', 'Izin', 'Sakit', 'Alpa')),
     note TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS tahfidz (
     to_ayat INTEGER,
     type TEXT,
     fluency TEXT,
+    setoran_mode TEXT DEFAULT 'per_halaman' CHECK (setoran_mode IN ('per_juz', 'per_halaman')),
     note TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -104,6 +106,30 @@ CREATE TABLE IF NOT EXISTS agenda (
     date DATE NOT NULL,
     time TIME DEFAULT '08:00',
     location TEXT,
+    photo_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS hero_slides (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type TEXT DEFAULT 'image' CHECK (type IN ('image', 'video')),
+    media_url TEXT NOT NULL,
+    poster_url TEXT,
+    alt TEXT NOT NULL,
+    caption TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS galeri_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    category TEXT DEFAULT 'Kegiatan' CHECK (category IN ('Kegiatan', 'Fasilitas', 'Kajian')),
+    image_url TEXT NOT NULL,
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -117,6 +143,8 @@ ALTER TABLE nilai ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ijazah ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agenda ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hero_slides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE galeri_items ENABLE ROW LEVEL SECURITY;
 
 -- 4. HELPER FUNCTION: is_admin (Anti-Recursion)
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -182,6 +210,29 @@ CREATE POLICY "transactions_select_wali" ON transactions FOR SELECT USING (
 
 CREATE POLICY "agenda_select_all" ON agenda FOR SELECT USING (true);
 CREATE POLICY "agenda_admin_all" ON agenda FOR ALL USING (is_admin());
+CREATE POLICY "agenda_pengajar_all" ON agenda FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'pengajar')
+);
+
+CREATE POLICY "hero_slides_select_all" ON hero_slides FOR SELECT USING (is_active = true OR is_admin());
+CREATE POLICY "hero_slides_admin_all" ON hero_slides FOR ALL USING (is_admin());
+
+CREATE POLICY "galeri_items_select_all" ON galeri_items FOR SELECT USING (is_active = true OR is_admin());
+CREATE POLICY "galeri_items_admin_all" ON galeri_items FOR ALL USING (is_admin());
+
+-- Storage bucket untuk foto/video konten website
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('konten', 'konten', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "konten_public_read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'konten');
+CREATE POLICY "konten_admin_insert" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'konten' AND is_admin());
+CREATE POLICY "konten_admin_update" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'konten' AND is_admin());
+CREATE POLICY "konten_admin_delete" ON storage.objects
+  FOR DELETE USING (bucket_id = 'konten' AND is_admin());
 
 -- 6. TRIGGER: handle_new_user
 CREATE OR REPLACE FUNCTION public.handle_new_user()

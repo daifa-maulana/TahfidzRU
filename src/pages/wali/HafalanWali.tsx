@@ -58,7 +58,9 @@ export default function HafalanWali() {
         {santri.length > 1 && (
           <div className="relative min-w-[200px]">
             <select className="input-field appearance-none pr-9" value={selectedSantriId} onChange={(e) => setSelectedSantriId(e.target.value)}>
-              {santri.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {santri.map(s => (
+                <option key={s.id} value={s.id}>{s.name || 'Santri tanpa nama'}</option>
+              ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
           </div>

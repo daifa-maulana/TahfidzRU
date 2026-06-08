@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { dataService } from '../../services/data';
-import { Search, UserPlus, Edit2, Trash2, Filter, Loader2, X, Award } from 'lucide-react';
+import { Search, UserPlus, Edit2, Trash2, Filter, Loader2, X, Award, Users } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
@@ -15,6 +15,7 @@ export default function SantriManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('Semua');
+  const [genderFilter, setGenderFilter] = useState('Semua');
   const { toast, showToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,7 +24,8 @@ export default function SantriManagement() {
 
   const [formData, setFormData] = useState({
     name: '', nis: '', class_name: '', type: 'Mukim',
-    gender: 'L', wali_id: '', email: '', photo_url: ''
+    gender: 'L', wali_id: '', email: '', photo_url: '',
+    tahfidz_level: 'binnadzhor'
   });
 
   useEffect(() => { fetchData(); }, []);
@@ -45,6 +47,17 @@ export default function SantriManagement() {
     }
   };
 
+  const handlePromote = async (s: any) => {
+    if (!confirm(`Apakah Anda yakin ingin menaikkan kelas ${s.name} dari Bin Nadzhor ke Bil Ghoib?`)) return;
+    try {
+      await dataService.updateSantri(s.id, { ...s, tahfidz_level: 'bilghoib' });
+      showToast(`${s.name} berhasil naik kelas ke Bil Ghoib!`, 'success');
+      fetchData();
+    } catch (error: any) {
+      showToast(error.message || 'Gagal menaikkan kelas santri', 'error');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus data santri ini?')) return;
     try {
@@ -58,14 +71,15 @@ export default function SantriManagement() {
     if (s) {
       setCurrentSantri(s);
       setFormData({ name: s.name, nis: s.nis, class_name: s.class_name, type: s.type,
-        gender: s.gender, wali_id: s.wali_id || '', email: s.email || '', photo_url: s.photo_url || '' });
+        gender: s.gender, wali_id: s.wali_id || '', email: s.email || '', photo_url: s.photo_url || '',
+        tahfidz_level: s.tahfidz_level || 'binnadzhor' });
     } else {
       const nises = santri.map(x => { const m = x.nis.match(/\d+/); return m ? parseInt(m[0]) : 0; })
         .filter(n => n > 0).sort((a, b) => b - a);
       const next = nises.length > 0 ? nises[0] + 1 : 1;
       setCurrentSantri(null);
       setFormData({ name: '', nis: next < 10 ? `0${next}` : `${next}`, class_name: '', type: 'Mukim',
-        gender: 'L', wali_id: '', email: '', photo_url: '' });
+        gender: 'L', wali_id: '', email: '', photo_url: '', tahfidz_level: 'binnadzhor' });
     }
     setIsModalOpen(true);
   };
@@ -93,7 +107,8 @@ export default function SantriManagement() {
   const filteredSantri = santri.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.nis.includes(searchTerm);
     const matchesFilter = filterType === 'Semua' || s.type === filterType;
-    return matchesSearch && matchesFilter;
+    const matchesGender = genderFilter === 'Semua' || s.gender === genderFilter;
+    return matchesSearch && matchesFilter && matchesGender;
   });
 
   return (
@@ -133,6 +148,18 @@ export default function SantriManagement() {
               <option value="Semua">Semua Tipe</option>
               <option value="Mukim">Mukim</option>
               <option value="Non-Mukim">Non-Mukim</option>
+            </select>
+          </div>
+          <div className="relative">
+            <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <select
+              className="input-field pl-10 pr-10 appearance-none cursor-pointer min-w-[160px]"
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+            >
+              <option value="Semua">Semua Gender</option>
+              <option value="L">Putra (L)</option>
+              <option value="P">Putri (P)</option>
             </select>
           </div>
         </div>
@@ -176,7 +203,14 @@ export default function SantriManagement() {
                       )}
                       <div>
                         <p className="text-sm font-semibold text-slate-800">{s.name}</p>
-                        <p className="text-xs text-slate-400 font-mono">NIS-{s.nis}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="text-[10px] text-slate-400 font-mono">NIS-{s.nis}</span>
+                          <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider border",
+                            s.tahfidz_level === 'bilghoib' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'
+                          )}>
+                            {s.tahfidz_level === 'bilghoib' ? '📖 Bil Ghoib' : '👀 Bin Nadzhor'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -195,6 +229,12 @@ export default function SantriManagement() {
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {s.tahfidz_level !== 'bilghoib' && (
+                        <button onClick={() => handlePromote(s)} title="Naik Kelas ke Bil Ghoib"
+                          className="px-2 py-1 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-emerald-150 text-[10px] font-black flex items-center gap-1 transition-colors mr-1">
+                          Naik Kelas
+                        </button>
+                      )}
                       <button onClick={() => navigate(`/admin/ijazah/${s.id}`)} title="Lihat Ijazah"
                         className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors">
                         <Award size={16} />
@@ -254,6 +294,14 @@ export default function SantriManagement() {
                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}>
                 <option value="L">Laki-laki</option>
                 <option value="P">Perempuan</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="form-label">Tingkat Tahfidz</label>
+              <select className="input-field" value={formData.tahfidz_level}
+                onChange={(e) => setFormData({ ...formData, tahfidz_level: e.target.value })}>
+                <option value="binnadzhor">Bin Nadzhor (Bawah - Jilid 1-7 & Halaman)</option>
+                <option value="bilghoib">Bil Ghoib (Atas - Juz 1-30 & Halaman)</option>
               </select>
             </div>
             <div className="col-span-2">

@@ -12,7 +12,10 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  BarChart3,
+  FileText,
+  Image
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -32,16 +35,19 @@ export function Sidebar({ role, onClose }: SidebarProps) {
     admin: [
       { path: '/admin', icon: LayoutDashboard, label: 'Dasbor Utama' },
       { path: '/admin/santri', icon: Users, label: 'Data Santri' },
-      { path: '/admin/absensi', icon: ClipboardCheck, label: 'Rekap Presensi' },
+      { path: '/admin/absensi', icon: ClipboardCheck, label: 'Presensi' },
+      { path: '/admin/rekap-laporan', icon: FileText, label: 'Laporan Terpadu' },
       { path: '/admin/tahfidz', icon: BookOpen, label: 'Buku Tahfidz' },
       { path: '/admin/nilai', icon: GraduationCap, label: 'Nilai Akademik' },
       { path: '/admin/agenda', icon: Calendar, label: 'Agenda Acara' },
+      { path: '/admin/konten', icon: Image, label: 'Konten Website' },
       { path: '/admin/approval', icon: UserCheck, label: 'Persetujuan Akun' },
     ],
     pengajar: [
       { path: '/pengajar', icon: LayoutDashboard, label: 'Dasbor Kelas' },
       { path: '/pengajar/absensi', icon: ClipboardCheck, label: 'Isi Presensi' },
       { path: '/pengajar/tahfidz', icon: BookOpen, label: 'Input Setoran' },
+      { path: '/pengajar/agenda', icon: Calendar, label: 'Agenda Acara' },
     ],
     wali: [
       { path: '/wali', icon: LayoutDashboard, label: 'Beranda' },

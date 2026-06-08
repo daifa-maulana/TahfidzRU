@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { BookOpen, UserCircle, Plus, ChevronDown, CheckCircle2, History, Edit2, Trash2, Loader2, Info } from 'lucide-react';
+import { BookOpen, UserCircle, Plus, ChevronDown, CheckCircle2, History, Edit2, Trash2, Loader2, Info, Users } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -33,10 +33,16 @@ export default function TahfidzManagement() {
   const { toast, showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<any>(null);
+  const [genderFilter, setGenderFilter] = useState<'Semua' | 'L' | 'P'>('Semua');
+
+  const currentSantriObj = santri.find(s => s.id === selectedSantri);
+  const isBilGhoib = currentSantriObj?.tahfidz_level === 'bilghoib';
 
   const [formData, setFormData] = useState({
     surah: '', from_ayat: '', to_ayat: '',
-    type: 'Setoran Baru', fluency: 'Lancar', note: ''
+    type: 'Setoran Baru', fluency: 'Lancar', note: '',
+    setoran_mode: 'per_halaman',
+    juz_from: '', juz_to: '', materi: ''
   });
 
   useEffect(() => { fetchSantri(); }, []);
@@ -46,8 +52,11 @@ export default function TahfidzManagement() {
   }, [selectedSantri]);
 
   const fetchSantri = async () => {
-    try { const data = await dataService.getSantriList(); setSantri(data); }
-    catch { showToast('Gagal memuat daftar santri', 'error'); }
+    try {
+      const data = await dataService.getSantriList();
+      const filtered = genderFilter === 'Semua' ? data : data.filter((s: any) => s.gender === genderFilter);
+      setSantri(filtered);
+    } catch { showToast('Gagal memuat daftar santri', 'error'); }
     finally { setLoading(false); }
   };
 
@@ -58,8 +67,15 @@ export default function TahfidzManagement() {
 
   const handleOpenEdit = (log: any) => {
     setEditingLog(log);
+    let juzFrom = '', juzTo = '';
+    if (log.setoran_mode === 'per_juz' && log.surah?.includes(' - ')) {
+      const parts = log.surah.split(' - ');
+      juzFrom = parts[0].replace('Juz ', '');
+      juzTo = parts[1].replace('Juz ', '');
+    }
     setFormData({ surah: log.surah, from_ayat: log.from_ayat, to_ayat: log.to_ayat,
-      type: log.type, fluency: log.fluency, note: log.note || '' });
+      type: log.type, fluency: log.fluency, note: log.note || '', setoran_mode: log.setoran_mode || 'per_halaman',
+      juz_from: juzFrom, juz_to: juzTo, materi: log.surah?.startsWith('Jilid') ? (log.note || '') : '' });
     setIsModalOpen(true);
   };
 
@@ -74,11 +90,21 @@ export default function TahfidzManagement() {
     if (!selectedSantri) return showToast('Pilih santri terlebih dahulu', 'error');
     setSubmitting(true);
     try {
-      const payload = { ...formData, from_ayat: Number(formData.from_ayat), to_ayat: Number(formData.to_ayat), santri_id: selectedSantri };
+      let payload: any;
+      if (!isBilGhoib) {
+        // Bin Nadzhor: Jilid + Materi Hafalan, no halaman
+        payload = { surah: formData.surah, from_ayat: 0, to_ayat: 0, type: formData.type, fluency: formData.fluency, note: formData.materi, setoran_mode: 'per_halaman', santri_id: selectedSantri };
+      } else if (formData.setoran_mode === 'per_juz') {
+        // Bil Ghoib Per Juz
+        payload = { surah: `Juz ${formData.juz_from} - Juz ${formData.juz_to}`, from_ayat: Number(formData.from_ayat), to_ayat: Number(formData.to_ayat), type: formData.type, fluency: formData.fluency, note: formData.note, setoran_mode: 'per_juz', santri_id: selectedSantri };
+      } else {
+        // Bil Ghoib Per Halaman
+        payload = { surah: formData.surah, from_ayat: Number(formData.from_ayat), to_ayat: Number(formData.to_ayat), type: formData.type, fluency: formData.fluency, note: formData.note, setoran_mode: 'per_halaman', santri_id: selectedSantri };
+      }
       if (editingLog) { await dataService.updateTahfidz(editingLog.id, payload); showToast('Riwayat diperbarui', 'success'); setIsModalOpen(false); }
       else { await dataService.createTahfidz(payload); showToast('Setoran berhasil disimpan!', 'success'); }
       fetchLogs(selectedSantri);
-      if (!editingLog) setFormData({ surah: '', from_ayat: '', to_ayat: '', type: 'Setoran Baru', fluency: 'Lancar', note: '' });
+      if (!editingLog) setFormData({ surah: '', from_ayat: '', to_ayat: '', type: 'Setoran Baru', fluency: 'Lancar', note: '', setoran_mode: 'per_halaman', juz_from: '', juz_to: '', materi: '' });
     } catch (error: any) { showToast(error.message || 'Gagal menyimpan setoran', 'error'); }
     finally { setSubmitting(false); }
   };
@@ -115,43 +141,137 @@ export default function TahfidzManagement() {
                 <label className="form-label">Pilih Santri</label>
                 <div className="relative">
                   <select className="input-field appearance-none pr-9 cursor-pointer" value={selectedSantri}
-                    onChange={(e) => setSelectedSantri(e.target.value)}>
+                    onChange={(e) => {
+                      setSelectedSantri(e.target.value);
+                      setFormData(prev => ({ ...prev, surah: '', from_ayat: '', to_ayat: '', juz_from: '', juz_to: '', materi: '' }));
+                    }}>
                     <option value="">-- Pilih Santri --</option>
-                    {santri.map(s => <option key={s.id} value={s.id}>{s.name} ({s.nis})</option>)}
+                    {santri.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {(s.name || 'Santri tanpa nama')} ({s.nis || '-'}) {s.gender === 'L' ? '— Putra' : s.gender === 'P' ? '— Putri' : ''}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
+              {/* Dynamic form based on student tahfidz level */}
+              {selectedSantri ? (
+                isBilGhoib ? (
+                  <>
+                    {/* Skema Setoran - hanya untuk Bil Ghoib */}
+                    <div>
+                      <label className="form-label">Skema Setoran</label>
+                      <div className="relative">
+                        <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.setoran_mode}
+                          onChange={(e) => setFormData({ ...formData, setoran_mode: e.target.value, surah: '', juz_from: '', juz_to: '', from_ayat: '', to_ayat: '' })}>
+                          <option value="per_halaman">Per Halaman</option>
+                          <option value="per_juz">Per Juz</option>
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
 
-              <div>
-                <label className="form-label">Pilih Surah / Juz</label>
-                <div className="relative">
-                  <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.surah}
-                    onChange={(e) => setFormData({ ...formData, surah: e.target.value })} required>
-                    <option value="">-- Pilih Surah --</option>
-                    <optgroup label="Semua Surah">
-                      {SURAH_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                    </optgroup>
-                    <optgroup label="Lainnya">
-                      <option value="Lainnya (Tulis di Catatan)">Surah Lainnya (Tulis di Catatan)</option>
-                    </optgroup>
-                  </select>
-                  <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    {formData.setoran_mode === 'per_halaman' ? (
+                      <>
+                        <div>
+                          <label className="form-label">Pilih Juz</label>
+                          <div className="relative">
+                            <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.surah}
+                              onChange={(e) => setFormData({ ...formData, surah: e.target.value })} required>
+                              <option value="">-- Pilih Juz --</option>
+                              {Array.from({ length: 30 }, (_, i) => `Juz ${i + 1}`).map(j => (
+                                <option key={j} value={j}>{j}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="form-label">Dari Halaman</label>
+                            <input type="number" className="input-field" value={formData.from_ayat}
+                              onChange={(e) => setFormData({ ...formData, from_ayat: e.target.value })} required min="1" />
+                          </div>
+                          <div>
+                            <label className="form-label">Sampai Halaman</label>
+                            <input type="number" className="input-field" value={formData.to_ayat}
+                              onChange={(e) => setFormData({ ...formData, to_ayat: e.target.value })} required min="1" />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="form-label">Dari Juz</label>
+                            <div className="relative">
+                              <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.juz_from}
+                                onChange={(e) => setFormData({ ...formData, juz_from: e.target.value })} required>
+                                <option value="">-- Pilih --</option>
+                                {Array.from({ length: 30 }, (_, i) => i + 1).map(j => (
+                                  <option key={j} value={String(j)}>Juz {j}</option>
+                                ))}
+                              </select>
+                              <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="form-label">Sampai Juz</label>
+                            <div className="relative">
+                              <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.juz_to}
+                                onChange={(e) => setFormData({ ...formData, juz_to: e.target.value })} required>
+                                <option value="">-- Pilih --</option>
+                                {Array.from({ length: 30 }, (_, i) => i + 1).map(j => (
+                                  <option key={j} value={String(j)}>Juz {j}</option>
+                                ))}
+                              </select>
+                              <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="form-label">Dari Halaman</label>
+                            <input type="number" className="input-field" value={formData.from_ayat}
+                              onChange={(e) => setFormData({ ...formData, from_ayat: e.target.value })} required min="1" />
+                          </div>
+                          <div>
+                            <label className="form-label">Sampai Halaman</label>
+                            <input type="number" className="input-field" value={formData.to_ayat}
+                              onChange={(e) => setFormData({ ...formData, to_ayat: e.target.value })} required min="1" />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="form-label">Pilih Jilid (Bin Nadzhor)</label>
+                      <div className="relative">
+                        <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.surah}
+                          onChange={(e) => setFormData({ ...formData, surah: e.target.value })} required>
+                          <option value="">-- Pilih Jilid --</option>
+                          {Array.from({ length: 7 }, (_, i) => `Jilid ${i + 1}`).map(j => (
+                            <option key={j} value={j}>{j}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="form-label">Materi Hafalan</label>
+                      <input type="text" className="input-field" placeholder="Contoh: Halaman 5 baris ke-3, Surat Al-Fatihah dst..."
+                        value={formData.materi} onChange={(e) => setFormData({ ...formData, materi: e.target.value })} required />
+                    </div>
+                  </>
+                )
+              ) : (
+                <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl text-center text-xs text-slate-400 font-medium">
+                  Pilih santri terlebih dahulu untuk menampilkan formulir setoran.
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="form-label">Dari Ayat</label>
-                  <input type="number" className="input-field" value={formData.from_ayat}
-                    onChange={(e) => setFormData({ ...formData, from_ayat: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="form-label">Sampai Ayat</label>
-                  <input type="number" className="input-field" value={formData.to_ayat}
-                    onChange={(e) => setFormData({ ...formData, to_ayat: e.target.value })} required />
-                </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -222,7 +342,13 @@ export default function TahfidzManagement() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{log.surah}</p>
-                      <p className="text-xs text-slate-500">Ayat {log.from_ayat}–{log.to_ayat}</p>
+                      <p className="text-xs text-slate-500">
+                        {log.surah?.startsWith('Jilid')
+                          ? (log.note ? `Materi: ${log.note}` : 'Bin Nadzhor')
+                          : log.surah?.startsWith('Juz')
+                          ? `Halaman ${log.from_ayat}–${log.to_ayat}`
+                          : `Ayat ${log.from_ayat}–${log.to_ayat}`}
+                      </p>
                     </div>
                     <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => handleOpenEdit(log)}
@@ -240,14 +366,19 @@ export default function TahfidzManagement() {
                       log.type === 'Setoran Baru' ? 'bg-blue-50 text-blue-600' : 'bg-sky-50 text-sky-600')}>
                       {log.type}
                     </span>
-                    <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full", fluencyColor(log.fluency))}>
-                      {log.fluency}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {format(new Date(log.created_at), 'dd MMM yyyy', { locale: id })}
-                    </span>
+                     <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full", fluencyColor(log.fluency))}>
+                       {log.fluency}
+                     </span>
+                     <span className="text-[10px] text-slate-400">
+                       {format(new Date(log.created_at), 'dd MMM yyyy', { locale: id })}
+                     </span>
+                     {!log.surah?.startsWith('Jilid') && (
+                       <span className="text-[10px] text-slate-400 font-mono">
+                         {(log.setoran_mode === 'per_juz' ? 'Per Juz' : 'Per Halaman')}
+                       </span>
+                     )}
                   </div>
-                  {log.note && <p className="text-xs text-slate-500 mt-1.5 italic">"{log.note}"</p>}
+                  {log.surah?.startsWith('Jilid') ? null : (log.note && <p className="text-xs text-slate-500 mt-1.5 italic">"{log.note}"</p>)}
                 </div>
               </motion.div>
             ))}
@@ -286,6 +417,13 @@ export default function TahfidzManagement() {
                 <option value="Lancar">Lancar</option>
                 <option value="Cukup">Cukup</option>
                 <option value="Kurang">Kurang</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Skema Setoran</label>
+              <select className="input-field" value={formData.setoran_mode} onChange={(e) => setFormData({ ...formData, setoran_mode: e.target.value })}>
+                <option value="per_halaman">Per Halaman</option>
+                <option value="per_juz">Per Juz</option>
               </select>
             </div>
           </div>

@@ -71,7 +71,11 @@ export default function WaliDashboard() {
                 const s = santri.find(x => x.id === e.target.value);
                 setSelectedSantri(s); fetchProgres(s.id);
               }}>
-              {santri.map(s => <option key={s.id} value={s.id}>{s.name} ({s.nis})</option>)}
+              {santri.map(s => (
+                <option key={s.id} value={s.id}>
+                  {(s.name || 'Santri tanpa nama')} ({s.nis || '-'})
+                </option>
+              ))}
             </select>
             <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>

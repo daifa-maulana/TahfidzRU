@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { Search, Save, Check, Info, Loader2, Clock, Sun } from 'lucide-react';
+import { Search, Save, Check, Info, Loader2, Clock, Sun, Users } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
-import { ABSENSI_SESSIONS, DEFAULT_ABSENSI_SESSION, type AbsensiSession } from '../../constants/absensi';
+import { ABSENSI_SESSIONS, DEFAULT_ABSENSI_SESSION, type AbsensiSession, SESSION_GENDER_MAP } from '../../constants/absensi';
 
 export default function AbsensiManagement() {
   const [santri, setSantri] = useState<any[]>([]);
@@ -19,17 +19,30 @@ export default function AbsensiManagement() {
   const [selectedSession, setSelectedSession] = useState<AbsensiSession>(DEFAULT_ABSENSI_SESSION);
   const [selectedClass, setSelectedClass] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [genderFilter, setGenderFilter] = useState<'Semua' | 'L' | 'P'>('L');
   const [recentDates, setRecentDates] = useState<any[]>([]);
   const { toast, showToast } = useToast();
 
-  useEffect(() => { fetchData(); }, [date, selectedSession]);
-  useEffect(() => { fetchRecentDates(); }, [date, selectedSession, santri.length]);
+  const availableSessions = genderFilter === 'P'
+    ? ['Shubuh', 'Ashar', 'Isya']
+    : genderFilter === 'L'
+      ? ['Shubuh', 'Ashar', 'Maghrib']
+      : ABSENSI_SESSIONS;
+
+  const effectiveSession = availableSessions.includes(selectedSession) ? selectedSession : 'Shubuh';
+
+  useEffect(() => { fetchData(); }, [date, effectiveSession]);
+  useEffect(() => { fetchRecentDates(); }, [date, effectiveSession, santri.length]);
+  useEffect(() => {
+    if (genderFilter === 'L' && selectedSession === 'Isya') setSelectedSession('Shubuh');
+    else if (genderFilter === 'P' && selectedSession === 'Maghrib') setSelectedSession('Shubuh');
+  }, [genderFilter]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [santriData, absensiData] = await Promise.all([
-        dataService.getSantriList(), dataService.getAbsensiList(date, selectedSession)
+        dataService.getSantriList(), dataService.getAbsensiList(date, effectiveSession)
       ]);
       setSantri(santriData);
       const initial: Record<string, string> = {};
@@ -42,11 +55,12 @@ export default function AbsensiManagement() {
 
   const fetchRecentDates = async () => {
     try {
-      const data = await dataService.getAbsensiList(undefined, selectedSession);
+      const data = await dataService.getAbsensiList(undefined, effectiveSession);
       const uniqueDates = Array.from(new Set(data.map((a: any) => a.date))).sort().reverse().slice(0, 5);
       const sessionHistory = (uniqueDates as string[]).map(d => {
-        const dayData = data.filter((a: any) => a.date === d && (a.session || 'Shubuh') === selectedSession);
-        return { date: d, filled: dayData.length, total: santri.length || dayData.length };
+        const dayData = data.filter((a: any) => a.date === d && (a.session || 'Shubuh') === effectiveSession);
+        const relevantTotal = SESSION_GENDER_MAP[effectiveSession] === 'all' ? santri.length : santri.filter((s: any) => s.gender === SESSION_GENDER_MAP[effectiveSession]).length;
+        return { date: d, filled: dayData.length, total: relevantTotal || dayData.length };
       });
       const filledNow = Object.keys(absensi).length;
       if (!uniqueDates.includes(date)) {
@@ -69,7 +83,7 @@ export default function AbsensiManagement() {
     setSaving(true); setShowConfirm(false);
     try {
       const dataToSave = Object.entries(absensi).map(([santri_id, status]) => ({
-        santri_id, status, date, session: selectedSession,
+        santri_id, status, date, session: effectiveSession,
       }));
       await dataService.saveAbsensi(dataToSave);
       showToast(isUpdating ? 'Data presensi berhasil diperbarui!' : 'Absensi berhasil disimpan!', 'success');
@@ -84,7 +98,8 @@ export default function AbsensiManagement() {
   const filteredSantri = santri.filter(s => {
     const matchesClass = selectedClass === 'All' || s.class_name === selectedClass;
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.nis.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesClass && matchesSearch;
+    const matchesGender = genderFilter === 'Semua' || s.gender === genderFilter;
+    return matchesClass && matchesSearch && matchesGender;
   });
 
   const stats = {
@@ -109,7 +124,7 @@ export default function AbsensiManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-header">Presensi Santri</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Presensi per sesi: Shubuh, Ashar, dan Maghrib setiap hari</p>
+          <p className="text-sm text-slate-500 mt-0.5">Presensi per sesi: Shubuh, Ashar, Maghrib setiap hari</p>
         </div>
         <div className="flex gap-2">
           <button onClick={setAllToHadir} className="btn-secondary">
@@ -125,14 +140,14 @@ export default function AbsensiManagement() {
 
       {/* Sesi sholat */}
       <div className="card p-2 flex flex-wrap gap-2">
-        {ABSENSI_SESSIONS.map((sesi) => (
+        {availableSessions.map((sesi) => (
           <button
             key={sesi}
             type="button"
             onClick={() => setSelectedSession(sesi)}
             className={cn(
               'flex-1 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-bold transition-all border',
-              selectedSession === sesi
+              effectiveSession === sesi
                 ? 'bg-[#1e3a5f] text-white border-[#1e3a5f] shadow-sm'
                 : 'bg-slate-50 text-slate-600 border-slate-100 hover:border-slate-200'
             )}
@@ -141,6 +156,11 @@ export default function AbsensiManagement() {
             {sesi}
           </button>
         ))}
+        {genderFilter !== 'Semua' && (
+          <span className="text-[10px] text-slate-400 flex items-center px-2">
+            {genderFilter === 'L' ? '👦 Putra' : '👧 Putri'}
+          </span>
+        )}
       </div>
 
       {/* Stat Cards */}
@@ -166,7 +186,7 @@ export default function AbsensiManagement() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-amber-800">Data absensi untuk tanggal ini sudah ada.</p>
               <p className="text-xs text-amber-600 mt-0.5">
-                Sesi <strong>{selectedSession}</strong> tanggal{' '}
+                Sesi <strong>{effectiveSession}</strong> tanggal{' '}
                 <strong>{format(new Date(date + 'T00:00:00'), 'dd MMMM yyyy', { locale: id })}</strong> akan ditimpa.
               </p>
             </div>
@@ -199,15 +219,15 @@ export default function AbsensiManagement() {
             </div>
           </div>
 
-          <div className="bg-emerald-600 p-4 rounded-2xl text-white">
+          <div className="bg-[#1e3a5f] p-4 rounded-2xl text-white">
             <h4 className="text-sm font-bold mb-1">Panduan Presensi</h4>
-            <p className="text-emerald-100/80 text-xs leading-relaxed">
+            <p className="text-slate-100/80 text-xs leading-relaxed">
               Isi presensi Shubuh, Ashar, dan Maghrib secara terpisah setiap hari agar wali santri dapat memantau kehadiran lengkap.
             </p>
           </div>
         </div>
 
-        {/* Main Table */}
+        {/* Main Content */}
         <div className="lg:col-span-3 space-y-4">
           {/* Filter */}
           <div className="card p-4">
