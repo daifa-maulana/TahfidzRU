@@ -37,7 +37,7 @@ export default function TahfidzManagement() {
   const [genderFilter, setGenderFilter] = useState<'Semua' | 'L' | 'P'>(DEFAULT_GENDER_FILTER);
 
   const currentSantriObj = santri.find(s => s.id === selectedSantri);
-  const isBilGhoib = currentSantriObj?.tahfidz_level === 'bilghoib';
+  const isYanbua = currentSantriObj?.tahfidz_level === 'yanbua';
 
   const [formData, setFormData] = useState({
     surah: '', from_ayat: '', to_ayat: '',
@@ -92,8 +92,8 @@ export default function TahfidzManagement() {
     setSubmitting(true);
     try {
       let payload: any;
-      if (!isBilGhoib) {
-        // Bin Nadzhor: Jilid + Materi Hafalan, no halaman
+      if (isYanbua) {
+        // Yanbu'a: Jilid + Materi Hafalan, no halaman
         payload = { surah: formData.surah, from_ayat: 0, to_ayat: 0, type: formData.type, fluency: formData.fluency, note: formData.materi, setoran_mode: 'per_halaman', santri_id: selectedSantri };
       } else if (formData.setoran_mode === 'per_juz') {
         // Bil Ghoib Per Juz
@@ -158,9 +158,9 @@ export default function TahfidzManagement() {
               </div>
               {/* Dynamic form based on student tahfidz level */}
               {selectedSantri ? (
-                isBilGhoib ? (
+                !isYanbua ? (
                   <>
-                    {/* Skema Setoran - hanya untuk Bil Ghoib */}
+                    {/* Skema Setoran - untuk Bil Ghoib dan Bin Nadzhor */}
                     <div>
                       <label className="form-label">Skema Setoran</label>
                       <div className="relative">
@@ -249,7 +249,7 @@ export default function TahfidzManagement() {
                 ) : (
                   <>
                     <div>
-                      <label className="form-label">Pilih Jilid (Bin Nadzhor)</label>
+                      <label className="form-label">Pilih Jilid (Yanbu'a)</label>
                       <div className="relative">
                         <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.surah}
                           onChange={(e) => setFormData({ ...formData, surah: e.target.value })} required>
@@ -345,7 +345,7 @@ export default function TahfidzManagement() {
                       <p className="text-sm font-semibold text-slate-800">{log.surah}</p>
                       <p className="text-xs text-slate-500">
                         {log.surah?.startsWith('Jilid')
-                          ? (log.note ? `Materi: ${log.note}` : 'Bin Nadzhor')
+                          ? (log.note ? `Materi: ${log.note}` : 'Yanbu\'a')
                           : log.surah?.startsWith('Juz')
                           ? `Halaman ${log.from_ayat}–${log.to_ayat}`
                           : `Ayat ${log.from_ayat}–${log.to_ayat}`}

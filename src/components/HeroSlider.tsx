@@ -58,37 +58,39 @@ export default function HeroSlider() {
 
   return (
     <section className="relative w-full min-h-[100svh] flex items-end overflow-hidden">
-      <div className="absolute inset-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current}
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.9, ease: 'easeInOut' }}
-            className="absolute inset-0"
-          >
-            {slide.type === 'video' ? (
-              <video
-                key={slide.src}
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster={slide.poster}
-                className="w-full h-full object-cover"
-              >
-                <source src={slide.src} type="video/mp4" />
-              </video>
-            ) : (
-              <img
-                src={slide.src}
-                alt={slide.alt}
-                className="w-full h-full object-cover"
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+      <div className="absolute inset-0 bg-pesantren-dark">
+        {total > 0 && slide && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current}
+              initial={{ opacity: 0, scale: 1.06 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, ease: 'easeInOut' }}
+              className="absolute inset-0"
+            >
+              {slide.type === 'video' ? (
+                <video
+                  key={slide.src}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  poster={slide.poster}
+                  className="w-full h-full object-cover opacity-60"
+                >
+                  <source src={slide.src} type="video/mp4" />
+                </video>
+              ) : (
+                <img
+                  src={slide.src}
+                  alt={slide.alt}
+                  className="w-full h-full object-cover opacity-60"
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-pesantren-dark/95 via-pesantren-dark/60 to-pesantren-dark/30" />
         <div className="absolute inset-0 bg-gradient-to-r from-pesantren-dark/40 to-transparent" />
@@ -119,7 +121,7 @@ export default function HeroSlider() {
               penghafal Al-Qur&apos;an berakhlak mulia, unggul dalam ilmu, dan siap berprestasi.
             </p>
 
-            {slide.caption && (
+            {total > 0 && slide?.caption && (
               <motion.p
                 key={slide.caption}
                 initial={{ opacity: 0, y: 8 }}

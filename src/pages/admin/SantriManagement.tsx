@@ -24,9 +24,9 @@ export default function SantriManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: '', nis: '', class_name: '', type: 'Mukim',
+    name: '', nis: '', type: 'Mukim',
     gender: CAMPUS_GENDER, wali_id: '', email: '', photo_url: '',
-    tahfidz_level: 'binnadzhor'
+    tahfidz_level: 'yanbua'
   });
 
   useEffect(() => { fetchData(); }, []);
@@ -49,13 +49,25 @@ export default function SantriManagement() {
   };
 
   const handlePromote = async (s: any) => {
-    if (!confirm(`Apakah Anda yakin ingin menaikkan kelas ${s.name} dari Bin Nadzhor ke Bil Ghoib?`)) return;
+    let nextLevel = '';
+    let promptMsg = '';
+    if (s.tahfidz_level === 'yanbua') {
+      nextLevel = 'binnadzhor';
+      promptMsg = `Apakah Anda yakin ingin menaikkan tingkat ${s.name} dari Yanbu'a ke Bin Nadzhor?`;
+    } else if (s.tahfidz_level === 'binnadzhor') {
+      nextLevel = 'bilghoib';
+      promptMsg = `Apakah Anda yakin ingin menaikkan tingkat ${s.name} dari Bin Nadzhor ke Bil Ghoib?`;
+    } else {
+      return;
+    }
+
+    if (!confirm(promptMsg)) return;
     try {
-      await dataService.updateSantri(s.id, { ...s, tahfidz_level: 'bilghoib' });
-      showToast(`${s.name} berhasil naik kelas ke Bil Ghoib!`, 'success');
+      await dataService.updateSantri(s.id, { ...s, tahfidz_level: nextLevel });
+      showToast(`${s.name} berhasil naik tingkat!`, 'success');
       fetchData();
     } catch (error: any) {
-      showToast(error.message || 'Gagal menaikkan kelas santri', 'error');
+      showToast(error.message || 'Gagal menaikkan tingkat santri', 'error');
     }
   };
 
@@ -71,16 +83,16 @@ export default function SantriManagement() {
   const handleOpenModal = (s?: any) => {
     if (s) {
       setCurrentSantri(s);
-      setFormData({ name: s.name, nis: s.nis, class_name: s.class_name, type: s.type,
+      setFormData({ name: s.name, nis: s.nis, type: s.type,
         gender: s.gender, wali_id: s.wali_id || '', email: s.email || '', photo_url: s.photo_url || '',
-        tahfidz_level: s.tahfidz_level || 'binnadzhor' });
+        tahfidz_level: s.tahfidz_level || 'yanbua' });
     } else {
       const nises = santri.map(x => { const m = x.nis.match(/\d+/); return m ? parseInt(m[0]) : 0; })
         .filter(n => n > 0).sort((a, b) => b - a);
       const next = nises.length > 0 ? nises[0] + 1 : 1;
       setCurrentSantri(null);
-      setFormData({ name: '', nis: next < 10 ? `0${next}` : `${next}`, class_name: '', type: 'Mukim',
-        gender: CAMPUS_GENDER, wali_id: '', email: '', photo_url: '', tahfidz_level: 'binnadzhor' });
+      setFormData({ name: '', nis: next < 10 ? `0${next}` : `${next}`, type: 'Mukim',
+        gender: CAMPUS_GENDER, wali_id: '', email: '', photo_url: '', tahfidz_level: 'yanbua' });
     }
     setIsModalOpen(true);
   };
@@ -174,7 +186,7 @@ export default function SantriManagement() {
               <tr className="bg-slate-50/70 border-b border-slate-100">
                 <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Santri</th>
                 <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tipe</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Kelas</th>
+                <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Tingkat / Kelas</th>
                 <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Wali</th>
                 <th className="px-5 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Aksi</th>
               </tr>
@@ -207,9 +219,11 @@ export default function SantriManagement() {
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <span className="text-[10px] text-slate-400 font-mono">NIS-{s.nis}</span>
                           <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider border",
-                            s.tahfidz_level === 'bilghoib' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'
+                            s.tahfidz_level === 'bilghoib' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                            s.tahfidz_level === 'binnadzhor' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                            'bg-slate-100 text-slate-500 border-slate-200'
                           )}>
-                            {s.tahfidz_level === 'bilghoib' ? '📖 Bil Ghoib' : '👀 Bin Nadzhor'}
+                            {s.tahfidz_level === 'bilghoib' ? '📖 Bil Ghoib' : s.tahfidz_level === 'binnadzhor' ? '👀 Bin Nadzhor' : '📗 Yanbu\'a'}
                           </span>
                         </div>
                       </div>
@@ -219,7 +233,9 @@ export default function SantriManagement() {
                     <span className={cn(s.type === 'Mukim' ? 'badge-blue' : 'badge-amber')}>{s.type}</span>
                   </td>
                   <td className="px-5 py-3.5 hidden md:table-cell">
-                    <span className="text-sm text-slate-600 font-medium">{s.class_name}</span>
+                    <span className="text-sm text-slate-600 font-medium">
+                      {s.tahfidz_level === 'bilghoib' ? 'Bil Ghoib' : s.tahfidz_level === 'binnadzhor' ? 'Bin Nadzhor' : 'Yanbu\'a'}
+                    </span>
                   </td>
                   <td className="px-5 py-3.5 hidden lg:table-cell">
                     {s.profiles?.full_name ? (
@@ -231,9 +247,9 @@ export default function SantriManagement() {
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1">
                       {s.tahfidz_level !== 'bilghoib' && (
-                        <button onClick={() => handlePromote(s)} title="Naik Kelas ke Bil Ghoib"
+                        <button onClick={() => handlePromote(s)} title="Naik Tingkat"
                           className="px-2 py-1 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-emerald-150 text-[10px] font-black flex items-center gap-1 transition-colors mr-1">
-                          Naik Kelas
+                          Naik Tingkat
                         </button>
                       )}
                       <button onClick={() => navigate(`/admin/ijazah/${s.id}`)} title="Lihat Ijazah"
@@ -276,10 +292,14 @@ export default function SantriManagement() {
               <input type="text" required className="input-field" value={formData.nis}
                 onChange={(e) => setFormData({ ...formData, nis: e.target.value })} />
             </div>
-            <div>
-              <label className="form-label">Kelas</label>
-              <input type="text" required className="input-field" placeholder="Contoh: VII-A" value={formData.class_name}
-                onChange={(e) => setFormData({ ...formData, class_name: e.target.value })} />
+            <div className="col-span-2">
+              <label className="form-label">Tingkat / Kelas</label>
+              <select className="input-field" value={formData.tahfidz_level}
+                onChange={(e) => setFormData({ ...formData, tahfidz_level: e.target.value })}>
+                <option value="yanbua">Yanbu'a (Paling Bawah - Jilid 1-7 & Materi Hafalan)</option>
+                <option value="binnadzhor">Bin Nadzhor (Tengah - Juz 1-30 & Halaman)</option>
+                <option value="bilghoib">Bil Ghoib (Paling Atas - Juz 1-30 & Halaman)</option>
+              </select>
             </div>
             <div>
               <label className="form-label">Tipe Santri</label>
@@ -297,14 +317,7 @@ export default function SantriManagement() {
                 <option value="P">Perempuan</option>
               </select>
             </div>
-            <div className="col-span-2">
-              <label className="form-label">Tingkat Tahfidz</label>
-              <select className="input-field" value={formData.tahfidz_level}
-                onChange={(e) => setFormData({ ...formData, tahfidz_level: e.target.value })}>
-                <option value="binnadzhor">Bin Nadzhor (Bawah - Jilid 1-7 & Halaman)</option>
-                <option value="bilghoib">Bil Ghoib (Atas - Juz 1-30 & Halaman)</option>
-              </select>
-            </div>
+
             <div className="col-span-2">
               <label className="form-label">Email Santri</label>
               <input type="email" className="input-field" placeholder="email@santri.com" value={formData.email}
