@@ -1,16 +1,16 @@
-/** Konfigurasi kampus — ubah di sini jika beralih putra/putri */
-export const CAMPUS_TYPE = 'putri' as const;
-export const CAMPUS_GENDER = 'P' as const;
-export const CAMPUS_LABEL = 'Putri';
-export const CAMPUS_GENDER_LABEL = 'Perempuan (Putri)';
-export const CAMPUS_FULL_NAME = "Pondok Pesantren Roudlotul 'Ulum Tahfidz Putri";
-export const CAMPUS_SUBTITLE = 'Tahfidz Putri · Parongpong KBB';
+/** Konfigurasi kampus - ubah di sini jika beralih putra/putri */
+export const CAMPUS_TYPE = 'putra' as const;
+export const CAMPUS_GENDER = 'L' as const;
+export const CAMPUS_LABEL = 'Putra';
+export const CAMPUS_GENDER_LABEL = 'Laki-laki (Putra)';
+export const CAMPUS_FULL_NAME = "Pondok Pesantren Roudlotul 'Ulum Tahfidz Putra";
+export const CAMPUS_SUBTITLE = 'Tahfidz Putra · Parongpong KBB';
 
 /** Sesi presensi: putra = Shubuh/Ashar/Maghrib, putri = Shubuh/Ashar/Isya */
 export const CAMPUS_ABSENSI_SESSIONS =
-  CAMPUS_TYPE === 'putri'
-    ? (['Shubuh', 'Ashar', 'Isya'] as const)
-    : (['Shubuh', 'Ashar', 'Maghrib'] as const);
+  CAMPUS_TYPE === 'putra'
+    ? (['Shubuh', 'Ashar', 'Maghrib'] as const)
+    : (['Shubuh', 'Ashar', 'Isya'] as const);
 
 export type CampusAbsensiSession = (typeof CAMPUS_ABSENSI_SESSIONS)[number];
 
