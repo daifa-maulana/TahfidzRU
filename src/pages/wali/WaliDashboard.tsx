@@ -113,7 +113,7 @@ export default function WaliDashboard() {
               <p className="text-slate-300 text-xs md:text-sm font-mono mb-4 md:mb-5">NIS: {selectedSantri.nis}</p>
 
               <div className="flex flex-wrap gap-2 md:gap-3 justify-center md:justify-start">
-                <button onClick={() => navigate(`/wali/ijazah/${selectedSantri.id}`)}
+                <button onClick={() => navigate('/wali/ijazah')}
                   className="px-4 py-2 bg-white text-slate-900 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors flex items-center shadow-sm">
                   <Award size={15} className="mr-1.5" /> Lihat Ijazah
                 </button>

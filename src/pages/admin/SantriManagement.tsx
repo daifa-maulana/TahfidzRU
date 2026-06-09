@@ -16,16 +16,22 @@ export default function SantriManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('Semua');
-  const [genderFilter, setGenderFilter] = useState(CAMPUS_GENDER);
   const { toast, showToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentSantri, setCurrentSantri] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Ya',
+    onConfirm: () => {}
+  });
 
   const [formData, setFormData] = useState({
     name: '', nis: '', type: 'Mukim',
-    gender: CAMPUS_GENDER, wali_id: '', email: '', photo_url: '',
+    gender: 'P', wali_id: '', email: '', photo_url: '',
     tahfidz_level: 'yanbua'
   });
 
@@ -48,7 +54,7 @@ export default function SantriManagement() {
     }
   };
 
-  const handlePromote = async (s: any) => {
+  const handlePromote = (s: any) => {
     let nextLevel = '';
     let promptMsg = '';
     if (s.tahfidz_level === 'yanbua') {
@@ -61,23 +67,39 @@ export default function SantriManagement() {
       return;
     }
 
-    if (!confirm(promptMsg)) return;
-    try {
-      await dataService.updateSantri(s.id, { ...s, tahfidz_level: nextLevel });
-      showToast(`${s.name} berhasil naik tingkat!`, 'success');
-      fetchData();
-    } catch (error: any) {
-      showToast(error.message || 'Gagal menaikkan tingkat santri', 'error');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Konfirmasi Naik Tingkat',
+      message: promptMsg,
+      confirmText: 'Ya, Naikkan Tingkat',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          await dataService.updateSantri(s.id, { ...s, tahfidz_level: nextLevel });
+          showToast(`${s.name} berhasil naik tingkat!`, 'success');
+          fetchData();
+        } catch (error: any) {
+          showToast(error.message || 'Gagal menaikkan tingkat santri', 'error');
+        }
+      }
+    });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data santri ini?')) return;
-    try {
-      await dataService.deleteSantri(id);
-      showToast('Data santri berhasil dihapus', 'success');
-      fetchData();
-    } catch { showToast('Gagal menghapus data santri', 'error'); }
+  const handleDelete = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Data Santri',
+      message: 'Apakah Anda yakin ingin menghapus data santri ini? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Ya, Hapus',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          await dataService.deleteSantri(id);
+          showToast('Data santri berhasil dihapus', 'success');
+          fetchData();
+        } catch { showToast('Gagal menghapus data santri', 'error'); }
+      }
+    });
   };
 
   const handleOpenModal = (s?: any) => {
@@ -92,7 +114,7 @@ export default function SantriManagement() {
       const next = nises.length > 0 ? nises[0] + 1 : 1;
       setCurrentSantri(null);
       setFormData({ name: '', nis: next < 10 ? `0${next}` : `${next}`, type: 'Mukim',
-        gender: CAMPUS_GENDER, wali_id: '', email: '', photo_url: '', tahfidz_level: 'yanbua' });
+        gender: 'P', wali_id: '', email: '', photo_url: '', tahfidz_level: 'yanbua' });
     }
     setIsModalOpen(true);
   };
@@ -120,8 +142,7 @@ export default function SantriManagement() {
   const filteredSantri = santri.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.nis.includes(searchTerm);
     const matchesFilter = filterType === 'Semua' || s.type === filterType;
-    const matchesGender = genderFilter === 'Semua' || s.gender === genderFilter;
-    return matchesSearch && matchesFilter && matchesGender;
+    return matchesSearch && matchesFilter;
   });
 
   return (
@@ -163,18 +184,7 @@ export default function SantriManagement() {
               <option value="Non-Mukim">Non-Mukim</option>
             </select>
           </div>
-          <div className="relative">
-            <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <select
-              className="input-field pl-10 pr-10 appearance-none cursor-pointer min-w-[160px]"
-              value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
-            >
-              <option value="Semua">Semua Gender</option>
-              <option value="L">Putra (L)</option>
-              <option value="P">Putri (P)</option>
-            </select>
-          </div>
+
         </div>
       </div>
 
@@ -282,26 +292,26 @@ export default function SantriManagement() {
         title={currentSantri ? 'Edit Data Santri' : 'Tambah Santri Baru'}>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
+            <div className="col-span-2 sm:col-span-1">
               <label className="form-label">Nama Lengkap</label>
               <input type="text" required className="input-field" value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className="form-label">NIS</label>
               <input type="text" required className="input-field" value={formData.nis}
                 onChange={(e) => setFormData({ ...formData, nis: e.target.value })} />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-2 sm:col-span-1">
               <label className="form-label">Tingkat / Kelas</label>
               <select className="input-field" value={formData.tahfidz_level}
                 onChange={(e) => setFormData({ ...formData, tahfidz_level: e.target.value })}>
-                <option value="yanbua">Yanbu'a (Paling Bawah - Jilid 1-7 & Materi Hafalan)</option>
-                <option value="binnadzhor">Bin Nadzhor (Tengah - Juz 1-30 & Halaman)</option>
-                <option value="bilghoib">Bil Ghoib (Paling Atas - Juz 1-30 & Halaman)</option>
+                <option value="yanbua">Yanbu'a</option>
+                <option value="binnadzhor">Bin Nadzhor</option>
+                <option value="bilghoib">Bil Ghoib</option>
               </select>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className="form-label">Tipe Santri</label>
               <select className="input-field" value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
@@ -309,19 +319,18 @@ export default function SantriManagement() {
                 <option value="Non-Mukim">Non-Mukim</option>
               </select>
             </div>
-            <div>
-              <label className="form-label">Jenis Kelamin</label>
-              <select className="input-field" value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}>
-                <option value="L">Laki-laki</option>
-                <option value="P">Perempuan</option>
-              </select>
-            </div>
-
-            <div className="col-span-2">
+            <div className="col-span-2 sm:col-span-1">
               <label className="form-label">Email Santri</label>
-              <input type="email" className="input-field" placeholder="email@santri.com" value={formData.email}
+              <input type="email" className="input-field" placeholder="Opsional" value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="form-label">Wali Santri</label>
+              <select className="input-field" value={formData.wali_id}
+                onChange={(e) => setFormData({ ...formData, wali_id: e.target.value })}>
+                <option value="">-- Pilih Wali (Opsional) --</option>
+                {waliList.map(w => <option key={w.id} value={w.id}>{w.full_name}</option>)}
+              </select>
             </div>
             <div className="col-span-2">
               <label className="form-label">Foto Santri (Dari Perangkat)</label>
@@ -342,15 +351,6 @@ export default function SantriManagement() {
                    }} />
               </div>
             </div>
-            <div className="col-span-2">
-              <label className="form-label">Wali Santri</label>
-              <select className="input-field" value={formData.wali_id}
-                onChange={(e) => setFormData({ ...formData, wali_id: e.target.value })}>
-                <option value="">-- Pilih Wali Santri (Opsional) --</option>
-                {waliList.map(w => <option key={w.id} value={w.id}>{w.full_name} ({w.email})</option>)}
-              </select>
-              <p className="text-[10px] text-slate-400 mt-1">Hanya menampilkan wali yang sudah disetujui admin.</p>
-            </div>
           </div>
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary flex-1">Batal</button>
@@ -360,6 +360,20 @@ export default function SantriManagement() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} title={confirmModal.title} className="max-w-md">
+        <div className="space-y-6">
+          <p className="text-slate-600 leading-relaxed">
+            {confirmModal.message}
+          </p>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} className="btn-secondary flex-1">Batal</button>
+            <button onClick={confirmModal.onConfirm} className={`btn-primary flex-1 ${confirmModal.title.includes('Hapus') ? 'bg-pesantren-red hover:bg-red-600 text-white' : ''}`}>
+              {confirmModal.confirmText}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => {}} />}

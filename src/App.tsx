@@ -44,6 +44,7 @@ import ProfilSantri from './pages/wali/ProfilSantri';
 import AgendaWali from './pages/wali/AgendaWali';
 import HafalanWali from './pages/wali/HafalanWali';
 import AbsensiWali from './pages/wali/AbsensiWali';
+import IjazahWali from './pages/wali/IjazahWali';
 
 const SetupRequired = () => (
   <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 text-slate-900">
@@ -128,6 +129,7 @@ function AppContent() {
             <Route path="absensi" element={<AbsensiWali />} />
             <Route path="agenda" element={<AgendaWali />} />
             <Route path="profil" element={<ProfilSantri />} />
+            <Route path="ijazah" element={<IjazahWali />} />
           </Route>
         </Route>
 

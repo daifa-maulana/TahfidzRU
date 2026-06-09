@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS santri (
     email TEXT,
     wali_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
     photo_url TEXT,
-    tahfidz_level TEXT DEFAULT 'binnadzhor' CHECK (tahfidz_level IN ('binnadzhor', 'bilghoib')),
+    tahfidz_level TEXT DEFAULT 'yanbua' CHECK (tahfidz_level IN ('yanbua', 'binnadzhor', 'bilghoib')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -94,8 +94,15 @@ CREATE TABLE IF NOT EXISTS ijazah (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
-    file_url TEXT NOT NULL,
-    issue_date DATE,
+    pencapaian TEXT,
+    predikat TEXT DEFAULT 'Mumtaz',
+    location TEXT DEFAULT 'Cihanjuang, Parongpong',
+    left_sign_name TEXT,
+    left_sign_title TEXT DEFAULT 'Pengasuh Pesantren',
+    right_sign_name TEXT,
+    right_sign_title TEXT DEFAULT 'Ketua Program Tahfidz',
+    is_published BOOLEAN DEFAULT FALSE,
+    issue_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
