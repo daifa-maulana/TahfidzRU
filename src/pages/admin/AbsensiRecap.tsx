@@ -9,7 +9,7 @@ import { Toast } from '../../components/Toast';
 import {
   CAMPUS_ABSENSI_SESSIONS,
   CAMPUS_ABSENSI_SESSION_LABEL,
-  CAMPUS_GENDER,
+
   CAMPUS_LABEL,
   createEmptySessionStats,
   type CampusAbsensiSession,
@@ -40,7 +40,7 @@ export default function AbsensiRecap() {
 
   const grouped: Record<string, { name: string; nis: string; class_name: string; sessions: Record<TSession, { hadir: number; izin: number; sakit: number; alpa: number; total: number }> }> = {};
   recapData
-    .filter((r: any) => !r.santri?.gender || r.santri.gender === CAMPUS_GENDER)
+
     .forEach((r: any) => {
     const sid = r.santri_id;
     if (!grouped[sid]) {

@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS santri (
     name TEXT NOT NULL,
     class_name TEXT,
     type TEXT DEFAULT 'Mukim' CHECK (type IN ('Mukim', 'Non-Mukim')),
-    gender TEXT CHECK (gender IN ('L', 'P')),
     birth_date DATE,
     address TEXT,
     email TEXT,
@@ -42,7 +41,7 @@ CREATE TABLE IF NOT EXISTS absensi (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
     date DATE DEFAULT CURRENT_DATE,
-    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib', 'Isya')),
+    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib')),
     status TEXT CHECK (status IN ('Hadir', 'Izin', 'Sakit', 'Alpa')),
     note TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -52,6 +51,8 @@ CREATE TABLE IF NOT EXISTS absensi (
 CREATE TABLE IF NOT EXISTS tahfidz (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
+    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib')),
+    setoran_level TEXT CHECK (setoran_level IN ('yanbua', 'binnadzhor', 'bilghoib') OR setoran_level IS NULL),
     surah TEXT NOT NULL,
     from_ayat INTEGER,
     to_ayat INTEGER,
@@ -59,6 +60,17 @@ CREATE TABLE IF NOT EXISTS tahfidz (
     fluency TEXT,
     setoran_mode TEXT DEFAULT 'per_halaman' CHECK (setoran_mode IN ('per_juz', 'per_halaman')),
     note TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- NEW: Table for new 'setoran' feature (separate from tahfidz if needed)
+CREATE TABLE IF NOT EXISTS setoran (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
+    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib')),
+    setoran_kind TEXT CHECK (setoran_kind IN ('binnadzhor', 'bilghoib', 'yanbua')),
+    content TEXT,
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

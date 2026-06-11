@@ -47,6 +47,7 @@ export function Sidebar({ role, onClose }: SidebarProps) {
       { path: '/pengajar', icon: LayoutDashboard, label: 'Dasbor Kelas' },
       { path: '/pengajar/absensi', icon: ClipboardCheck, label: 'Isi Presensi' },
       { path: '/pengajar/tahfidz', icon: BookOpen, label: 'Input Setoran' },
+      { path: '/pengajar/santri', icon: Users, label: 'Data Santri' },
       { path: '/pengajar/agenda', icon: Calendar, label: 'Agenda Acara' },
     ],
     wali: [

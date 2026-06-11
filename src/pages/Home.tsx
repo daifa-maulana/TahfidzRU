@@ -31,8 +31,8 @@ const HIGHLIGHTS = [
   },
   {
     icon: Users,
-    title: 'Khusus Santri Putri',
-    desc: 'Lingkungan khusus putri dengan pembinaan akhlak dan kedisiplinan Islami.',
+    title: 'Khusus Santri Putra',
+    desc: 'Lingkungan khusus putra dengan pembinaan akhlak dan kedisiplinan Islami.',
     color: 'bg-pesantren-yellow/20 text-[#7a6a00] border-pesantren-yellow/30',
   },
 ];

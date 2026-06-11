@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { BookOpen, ClipboardCheck, Clock, Calendar as CalendarIcon, Loader2, MapPin } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Clock, Calendar as CalendarIcon, Loader2, MapPin, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import { id as localeId } from 'date-fns/locale';
 import { format } from 'date-fns';
@@ -33,7 +33,7 @@ export default function PengajarDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link to="/pengajar/absensi" className="group">
           <motion.div whileHover={{ y: -4 }} className="card p-8 flex flex-col items-center text-center hover:shadow-lg hover:border-slate-300 transition-all">
             <div className="w-16 h-16 bg-[#1e3a5f] rounded-2xl flex items-center justify-center mb-4 text-white group-hover:scale-110 transition-transform">
@@ -51,6 +51,16 @@ export default function PengajarDashboard() {
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-[#1e3a5f] transition-colors">Setoran Tahfidz</h3>
             <p className="text-sm text-slate-500">Input dan evaluasi hafalan Al-Qur'an santri</p>
+          </motion.div>
+        </Link>
+
+        <Link to="/pengajar/santri" className="group">
+          <motion.div whileHover={{ y: -4 }} className="card p-8 flex flex-col items-center text-center hover:shadow-lg hover:border-slate-300 transition-all">
+            <div className="w-16 h-16 bg-[#1e3a5f] rounded-2xl flex items-center justify-center mb-4 text-white group-hover:scale-110 transition-transform">
+              <Users size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-[#1e3a5f] transition-colors">Data Santri</h3>
+            <p className="text-sm text-slate-500">Lihat dan kelola tingkatan tahfidz santri</p>
           </motion.div>
         </Link>
       </div>
@@ -100,7 +110,7 @@ export default function PengajarDashboard() {
                           )}
                           {item.location && (
                             <span className="text-[10px] text-slate-500 font-medium flex items-center truncate">
-                              <MapPin size={11} className="mr-1 flex-shrink-0" />{item.location}
+                              <MapPin size={11} className="mr-1 shrink-0" />{item.location}
                             </span>
                           )}
                         </div>
@@ -129,7 +139,7 @@ export default function PengajarDashboard() {
           {loading ? (
             <div className="text-center py-10 text-slate-400 text-sm">Memuat riwayat...</div>
           ) : stats?.recentTahfidz?.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                {stats.recentTahfidz.map((item: any) => (
                 <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
                   <div className="flex items-center gap-4">
