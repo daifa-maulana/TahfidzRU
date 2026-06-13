@@ -51,6 +51,7 @@ export default function TahfidzManagement() {
 
   const currentSantriObj = santri.find(s => s.id === selectedSantri);
   const isShubuhSession = formData.session === 'Shubuh';
+  const isYanbuaShubuh = isShubuhSession && (currentSantriObj?.tahfidz_level === 'yanbua' || !currentSantriObj?.tahfidz_level);
   const shubuhLevelLabel = currentSantriObj?.tahfidz_level === 'bilghoib'
     ? 'Bil Ghoib'
     : currentSantriObj?.tahfidz_level === 'binnadzhor'
@@ -59,9 +60,16 @@ export default function TahfidzManagement() {
 
   useEffect(() => { fetchSantri(); }, []);
   useEffect(() => {
-    if (selectedSantri) fetchLogs(selectedSantri);
-    else setLogs([]);
-  }, [selectedSantri]);
+    if (selectedSantri) {
+      fetchLogs(selectedSantri);
+      const sObj = santri.find(s => s.id === selectedSantri);
+      if (sObj?.tahfidz_level) {
+        setFormData(prev => ({ ...prev, setoran_level: sObj.tahfidz_level }));
+      }
+    } else {
+      setLogs([]);
+    }
+  }, [selectedSantri, santri]);
 
   const fetchSantri = async () => {
     try {
@@ -114,10 +122,11 @@ export default function TahfidzManagement() {
     try {
       let payload: any;
       const session = formData.session;
-      if (session === 'Shubuh') {
+      const isYanbuaShubuh = session === 'Shubuh' && (currentSantriObj?.tahfidz_level === 'yanbua' || !currentSantriObj?.tahfidz_level);
+      if (isYanbuaShubuh) {
         payload = {
           session,
-          setoran_level: null,
+          setoran_level: currentSantriObj?.tahfidz_level || 'yanbua',
           surah: formData.surah,
           from_ayat: 0,
           to_ayat: 0,
@@ -155,7 +164,7 @@ export default function TahfidzManagement() {
       if (!editingLog) {
         setFormData({
           session: 'Shubuh',
-          setoran_level: 'binnadzhor',
+          setoran_level: currentSantriObj?.tahfidz_level || 'yanbua',
           surah: '',
           from_ayat: '',
           to_ayat: '',
@@ -243,7 +252,20 @@ export default function TahfidzManagement() {
 
                   {selectedSantri ? (
                     <>
-                      {!isShubuhSession ? (
+                      <div className="bg-[#1e3a5f]/5 border border-[#1e3a5f]/20 rounded-xl p-4 mb-3">
+                        <div className="mb-2">
+                          <h4 className="font-semibold text-slate-800 text-sm">{currentSantriObj?.name}</h4>
+                          <p className="text-xs text-slate-500">NIS: {currentSantriObj?.nis}</p>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-slate-500">Level Tahfidz:</span>
+                          <span className="font-semibold text-[#1e3a5f] bg-[#1e3a5f]/10 px-2 py-0.5 rounded">
+                            {shubuhLevelLabel}
+                          </span>
+                        </div>
+                      </div>
+
+                      {!isYanbuaShubuh ? (
                         <>
                           <div>
                             <label className="form-label">Jenis Setoran</label>
@@ -553,6 +575,8 @@ export default function TahfidzManagement() {
           </div>
         </form>
       </Modal>
+
+
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => {}} />}
     </div>

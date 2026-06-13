@@ -219,7 +219,7 @@ export default function SantriPengajar() {
         </div>
       </Modal>
 
-      <Toast toast={toast} />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => {}} />}
     </div>
   );
 }
