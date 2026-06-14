@@ -60,6 +60,7 @@ export default function SantriPengajar() {
         try {
           await dataService.updateSantri(s.id, { ...s, tahfidz_level: nextLevel });
           showToast(`${s.name} berhasil naik tingkat!`, 'success');
+          setSantri(prev => prev.map(santri => santri.id === s.id ? { ...santri, tahfidz_level: nextLevel } : santri));
           fetchData();
         } catch (error: any) {
           showToast(error.message || 'Gagal menaikkan tingkat santri', 'error');

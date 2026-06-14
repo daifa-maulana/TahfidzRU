@@ -21,7 +21,7 @@ const sanitizeSantriPayload = (data: Record<string, unknown>) => {
   const email = String(data.email || '').trim();
   if (email) payload.email = email;
   const photo = data.photo_url;
-  if (typeof photo === 'string' && photo.length > 0 && photo.length < 500_000) {
+  if (typeof photo === 'string' && photo.length > 0 && photo.length < 5_000_000) {
     payload.photo_url = photo;
   }
   return payload;
@@ -51,9 +51,9 @@ export const dataService = {
   getSantriList: () => handleResponse(supabase.from('santri').select('*').order('name')),
   getSantriById: (id: string) => handleResponse(supabase.from('santri').select('*').eq('id', id).single()),
   createSantri: (data: any) =>
-    handleResponse(supabase.from('santri').insert(sanitizeSantriPayload(data)).select().single()),
+    handleResponse(supabase.from('santri').insert(sanitizeSantriPayload(data)).select()),
   updateSantri: (id: string, data: any) =>
-    handleResponse(supabase.from('santri').update(sanitizeSantriPayload(data)).eq('id', id).select().single()),
+    handleResponse(supabase.from('santri').update(sanitizeSantriPayload(data)).eq('id', id).select()),
   deleteSantri: (id: string) => handleResponse(supabase.from('santri').delete().eq('id', id)),
 
   // Absensi
@@ -145,6 +145,7 @@ export const dataService = {
   getProfiles: () => handleResponse(supabase.from('profiles').select('*')),
   getWaliList: () => handleResponse(supabase.from('profiles').select('*').eq('role', 'wali').eq('is_approved', true).order('full_name')),
   updateProfile: (id: string, data: any) => handleResponse(supabase.from('profiles').update(data).eq('id', id)),
+  deleteUser: (id: string) => handleResponse(supabase.rpc('delete_user', { user_id: id })),
   
   // Keuangan
   getTransactions: (santriId?: string) => {

@@ -99,6 +99,11 @@ export default function HafalanWali() {
                         item.type === 'Setoran Baru' ? "bg-emerald-50 text-emerald-600" : "bg-sky-50 text-sky-600")}>
                         {item.type}
                       </span>
+                      {item.session && (
+                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                          Sesi {item.session}
+                        </span>
+                      )}
                       <h4 className="text-lg font-bold text-slate-900">{item.surah}</h4>
                       <div className="flex items-center gap-2 bg-slate-50 px-2 py-1 rounded text-xs text-slate-600 font-semibold">
                         <span>Ayat {item.from_ayat}</span>
