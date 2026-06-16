@@ -130,7 +130,7 @@ export default function AdminDashboard() {
                 <tr className="bg-slate-50/70">
                   <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Santri</th>
                   <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Surah</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Ayat</th>
+                  <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Halaman</th>
                   <th className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Jenis</th>
                 </tr>
               </thead>
@@ -139,9 +139,9 @@ export default function AdminDashboard() {
                   stats.recentTahfidz.map((item: any) => (
                     <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-3.5 text-sm font-semibold text-slate-800 whitespace-nowrap">{item.santri?.name}</td>
-                      <td className="px-5 py-3.5 text-sm text-slate-600 whitespace-nowrap">QS. {item.surah}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-600 whitespace-nowrap">{item.surah?.startsWith('Jilid') ? item.surah : `QS. ${item.surah}`}</td>
                       <td className="px-5 py-3.5 text-xs text-slate-400 font-mono hidden sm:table-cell">
-                        {item.from_ayat}–{item.to_ayat}
+                        {item.surah?.startsWith('Jilid') ? 'Materi' : `${item.from_ayat}–${item.to_ayat}`}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={cn(

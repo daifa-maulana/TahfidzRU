@@ -106,7 +106,7 @@ export default function HafalanWali() {
                       )}
                       <h4 className="text-lg font-bold text-slate-900">{item.surah}</h4>
                       <div className="flex items-center gap-2 bg-slate-50 px-2 py-1 rounded text-xs text-slate-600 font-semibold">
-                        <span>Ayat {item.from_ayat}</span>
+                        <span>Halaman {item.from_ayat}</span>
                         <ArrowRight size={12} className="text-slate-400" />
                         <span>{item.to_ayat}</span>
                       </div>

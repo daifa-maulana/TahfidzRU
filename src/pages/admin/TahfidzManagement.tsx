@@ -471,9 +471,7 @@ export default function TahfidzManagement() {
                       <p className="text-xs text-slate-500">
                         {log.surah?.startsWith('Jilid')
                           ? (log.note ? `Materi: ${log.note}` : 'Yanbu\'a')
-                          : log.surah?.startsWith('Juz')
-                          ? `Halaman ${log.from_ayat}–${log.to_ayat}`
-                          : `Ayat ${log.from_ayat}–${log.to_ayat}`}
+                          : `Halaman ${log.from_ayat}–${log.to_ayat}`}
                       </p>
                     </div>
                     <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -529,12 +527,12 @@ export default function TahfidzManagement() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">Dari Ayat</label>
+              <label className="form-label">Dari Halaman</label>
               <input type="number" required className="input-field" value={formData.from_ayat}
                 onChange={(e) => setFormData({ ...formData, from_ayat: e.target.value })} />
             </div>
             <div>
-              <label className="form-label">Sampai Ayat</label>
+              <label className="form-label">Sampai Halaman</label>
               <input type="number" required className="input-field" value={formData.to_ayat}
                 onChange={(e) => setFormData({ ...formData, to_ayat: e.target.value })} />
             </div>

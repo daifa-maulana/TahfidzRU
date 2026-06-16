@@ -179,7 +179,9 @@ export default function WaliDashboard() {
                             <div>
                               <p className="text-sm font-bold text-slate-800">{item.surah}</p>
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs text-slate-500">Ayat {item.from_ayat}-{item.to_ayat}</span>
+                                <span className="text-xs text-slate-500">
+                                  {item.surah?.startsWith('Jilid') ? '' : `Halaman ${item.from_ayat}-${item.to_ayat}`}
+                                </span>
                                 {item.session && (
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-500 border-slate-200">
                                     Sesi {item.session}
