@@ -23,6 +23,17 @@ export default function HeroSlider() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Preload slide berikutnya agar transisi instan
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const nextIdx = (current + 1) % slides.length;
+    const nextSlide = slides[nextIdx];
+    if (nextSlide?.type === 'image' && nextSlide.src) {
+      const img = new window.Image();
+      img.src = nextSlide.src;
+    }
+  }, [current, slides]);
+
   const total = slides.length;
 
   const goTo = useCallback(
@@ -48,8 +59,23 @@ export default function HeroSlider() {
 
   if (loading) {
     return (
-      <section className="relative w-full min-h-[100svh] flex items-center justify-center bg-pesantren-dark">
-        <Loader2 className="animate-spin text-pesantren-green" size={40} />
+      <section className="relative w-full min-h-[100svh] flex items-end overflow-hidden bg-pesantren-dark">
+        {/* Shimmer skeleton untuk hero */}
+        <div className="absolute inset-0 animate-pulse">
+          <div className="w-full h-full bg-gradient-to-b from-slate-800 via-slate-700 to-pesantren-dark" />
+        </div>
+        <div className="relative z-10 w-full pt-32 pb-16 md:pb-24 px-6">
+          <div className="max-w-6xl mx-auto max-w-3xl space-y-5 animate-pulse">
+            <div className="h-5 w-40 bg-white/15 rounded-full" />
+            <div className="h-16 w-3/4 bg-white/10 rounded-xl" />
+            <div className="h-16 w-1/2 bg-white/10 rounded-xl" />
+            <div className="h-5 w-2/3 bg-white/10 rounded-lg" />
+            <div className="flex gap-3 mt-4">
+              <div className="h-12 w-36 bg-white/15 rounded-full" />
+              <div className="h-12 w-36 bg-white/10 rounded-full" />
+            </div>
+          </div>
+        </div>
       </section>
     );
   }
@@ -59,38 +85,44 @@ export default function HeroSlider() {
   return (
     <section className="relative w-full min-h-[100svh] flex items-end overflow-hidden">
       <div className="absolute inset-0 bg-pesantren-dark">
-        {total > 0 && slide && (
-          <AnimatePresence mode="wait">
+        {total > 0 && slides.map((s, index) => {
+          const isActive = index === current;
+          return (
             <motion.div
-              key={current}
-              initial={{ opacity: 0, scale: 1.06 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.9, ease: 'easeInOut' }}
+              key={s.id || index}
+              initial={{ opacity: 0, filter: 'blur(12px)' }}
+              animate={{ 
+                opacity: isActive ? 1 : 0, 
+                filter: isActive ? 'blur(0px)' : 'blur(12px)',
+                zIndex: isActive ? 10 : 0
+              }}
+              transition={{ duration: 1.3, ease: 'easeInOut' }}
               className="absolute inset-0"
             >
-              {slide.type === 'video' ? (
+              {s.type === 'video' ? (
                 <video
-                  key={slide.src}
                   autoPlay
                   muted
                   loop
+                  preload="auto"
                   playsInline
-                  poster={slide.poster}
+                  poster={s.poster}
                   className="w-full h-full object-cover opacity-60"
                 >
-                  <source src={slide.src} type="video/mp4" />
+                  <source src={s.src} type="video/mp4" />
                 </video>
               ) : (
                 <img
-                  src={slide.src}
-                  alt={slide.alt}
+                  src={s.src}
+                  alt={s.alt}
                   className="w-full h-full object-cover opacity-60"
+                  loading="eager"
+                  fetchPriority={isActive ? "high" : "low"}
                 />
               )}
             </motion.div>
-          </AnimatePresence>
-        )}
+          );
+        })}
 
         <div className="absolute inset-0 bg-gradient-to-t from-pesantren-dark/95 via-pesantren-dark/60 to-pesantren-dark/30" />
         <div className="absolute inset-0 bg-gradient-to-r from-pesantren-dark/40 to-transparent" />

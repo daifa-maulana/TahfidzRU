@@ -61,8 +61,17 @@ export default function GaleriPage() {
 
           {/* Grid Layout */}
           {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="animate-spin text-pesantren-green" size={36} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="glass-panel overflow-hidden animate-pulse">
+                  <div className="h-64 bg-slate-200" />
+                  <div className="p-6 space-y-3">
+                    <div className="h-5 bg-slate-200 rounded w-3/4" />
+                    <div className="h-4 bg-slate-200 rounded w-full" />
+                    <div className="h-4 bg-slate-200 rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredItems.length === 0 ? (
             <p className="text-center text-slate-500 font-medium py-20">Belum ada foto galeri.</p>
@@ -88,7 +97,10 @@ export default function GaleriPage() {
                     <img 
                       src={item.image} 
                       alt={item.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-0"
+                      loading="lazy"
+                      onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                      style={{ transition: 'opacity 0.4s ease, transform 0.7s ease' }}
                     />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <div className="w-12 h-12 bg-white/95 rounded-full flex items-center justify-center shadow-lg text-pesantren-dark">

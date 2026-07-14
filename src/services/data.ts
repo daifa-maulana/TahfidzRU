@@ -18,8 +18,7 @@ const sanitizeSantriPayload = (data: Record<string, unknown>) => {
     wali_id: data.wali_id ? data.wali_id : null,
     tahfidz_level: sanitizeTahfidzLevel(data.tahfidz_level),
   };
-  const email = String(data.email || '').trim();
-  if (email) payload.email = email;
+  // Note: email column does not exist in the actual database schema
   const photo = data.photo_url;
   if (typeof photo === 'string' && photo.length > 0 && photo.length < 5_000_000) {
     payload.photo_url = photo;
@@ -48,7 +47,7 @@ const handleResponse = async (promise: any) => {
 
 export const dataService = {
   // Santri
-  getSantriList: () => handleResponse(supabase.from('santri').select('*').order('name')),
+  getSantriList: () => handleResponse(supabase.from('santri').select('id, nis, name, class_name, type, tahfidz_level, wali_id').order('name')),
   getSantriById: (id: string) => handleResponse(supabase.from('santri').select('*').eq('id', id).single()),
   createSantri: (data: any) =>
     handleResponse(supabase.from('santri').insert(sanitizeSantriPayload(data)).select()),
@@ -205,7 +204,7 @@ export const dataService = {
   updateGaleriItem: (id: string, data: any) => handleResponse(supabase.from('galeri_items').update(data).eq('id', id).select().single()),
   deleteGaleriItem: (id: string) => handleResponse(supabase.from('galeri_items').delete().eq('id', id)),
 
-  uploadKontenMedia: async (file: File, folder: 'hero' | 'galeri') => {
+  uploadKontenMedia: async (file: File, folder: 'hero' | 'galeri' | 'santri') => {
     const isVideo = file.type.startsWith('video/');
     const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {

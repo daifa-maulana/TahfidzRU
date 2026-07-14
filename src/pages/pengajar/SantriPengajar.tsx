@@ -26,7 +26,7 @@ export default function SantriPengajar() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const santriData = await supabase.from('santri').select('*, profiles:wali_id(full_name)').order('name');
+      const santriData = await supabase.from('santri').select('id, nis, name, class_name, type, tahfidz_level, wali_id, profiles:wali_id(full_name)').order('name');
       if (santriData.error) throw santriData.error;
       setSantri(santriData.data || []);
     } catch (error: any) {
@@ -134,12 +134,28 @@ export default function SantriPengajar() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan={4} className="px-5 py-12 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 size={22} className="animate-spin text-slate-300" />
-                    <span className="text-sm text-slate-400">Memuat data santri...</span>
-                  </div>
-                </td></tr>
+                Array.from({ length: 5 }).map((_, index) => (
+                  <tr key={index} className="animate-pulse">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 bg-slate-100 rounded-full flex-shrink-0"></div>
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-4 bg-slate-100 rounded w-28"></div>
+                          <div className="h-3 bg-slate-100 rounded w-16"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 hidden md:table-cell">
+                      <div className="h-5 bg-slate-100 rounded-full w-14"></div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="h-6 bg-slate-100 rounded-lg w-20"></div>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="h-8 bg-slate-100 rounded-lg w-24 ml-auto"></div>
+                    </td>
+                  </tr>
+                ))
               ) : filteredSantri.length === 0 ? (
                 <tr><td colSpan={4} className="px-5 py-12 text-center">
                   <div className="flex flex-col items-center gap-3">
