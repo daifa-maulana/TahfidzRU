@@ -41,11 +41,12 @@ CREATE TABLE IF NOT EXISTS absensi (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
     date DATE DEFAULT CURRENT_DATE,
-    session TEXT DEFAULT 'Shubuh' CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib')),
+    session TEXT DEFAULT 'Subuh' CHECK (session IN ('Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya', 'Shubuh')),
+    type TEXT DEFAULT 'tahfidz' CHECK (type IN ('berjamaah', 'tahfidz')),
     status TEXT CHECK (status IN ('Hadir', 'Izin', 'Sakit', 'Alpa')),
     note TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (santri_id, date, session)
+    UNIQUE (santri_id, date, session, type)
 );
 
 CREATE TABLE IF NOT EXISTS tahfidz (

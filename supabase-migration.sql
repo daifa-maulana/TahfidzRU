@@ -11,20 +11,28 @@ ALTER TABLE santri DROP CONSTRAINT IF EXISTS santri_type_check;
 ALTER TABLE santri ADD CONSTRAINT santri_type_check
   CHECK (type IN ('Mukim', 'Non-Mukim'));
 
--- 2. Update kolom session di tabel absensi (3 sesi: Shubuh, Ashar, Maghrib)
-ALTER TABLE absensi ADD COLUMN IF NOT EXISTS session TEXT DEFAULT 'Shubuh';
-UPDATE absensi SET session = 'Shubuh' WHERE session IS NULL;
+-- 2. Update kolom session & type di tabel absensi (Subuh, Dzuhur, Ashar, Maghrib, Isya, Shubuh)
+ALTER TABLE absensi ADD COLUMN IF NOT EXISTS session TEXT DEFAULT 'Subuh';
+ALTER TABLE absensi ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'tahfidz';
 
--- Drop constraint lama jika ada dan buat constraint baru
+UPDATE absensi SET type = 'tahfidz' WHERE type IS NULL;
+
+-- Drop constraint lama jika ada dan buat constraint baru yang mendukung Sholat Berjamaah 5 Waktu & type
 ALTER TABLE absensi DROP CONSTRAINT IF EXISTS absensi_session_check;
 ALTER TABLE absensi ADD CONSTRAINT absensi_session_check
-  CHECK (session IN ('Shubuh', 'Ashar', 'Maghrib'));
+  CHECK (session IN ('Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya', 'Shubuh'));
 
--- Update unique constraint untuk absensi (santri_id, date, session)
+ALTER TABLE absensi DROP CONSTRAINT IF EXISTS absensi_type_check;
+ALTER TABLE absensi ADD CONSTRAINT absensi_type_check
+  CHECK (type IN ('berjamaah', 'tahfidz'));
+
+-- Update unique constraint untuk absensi (santri_id, date, session, type)
 ALTER TABLE absensi DROP CONSTRAINT IF EXISTS absensi_santri_id_date_key;
 ALTER TABLE absensi DROP CONSTRAINT IF EXISTS absensi_santri_date_session_unique;
-CREATE UNIQUE INDEX IF NOT EXISTS absensi_santri_date_session_unique
-  ON absensi (santri_id, date, session);
+ALTER TABLE absensi DROP CONSTRAINT IF EXISTS absensi_santri_id_date_session_type_key;
+DROP INDEX IF EXISTS absensi_santri_date_session_unique;
+CREATE UNIQUE INDEX IF NOT EXISTS absensi_santri_date_session_type_unique
+  ON absensi (santri_id, date, session, COALESCE(type, 'tahfidz'));
 
 -- 3. Update kolom session di tabel tahfidz (3 sesi: Shubuh, Ashar, Maghrib)
 ALTER TABLE tahfidz ADD COLUMN IF NOT EXISTS session TEXT DEFAULT 'Shubuh';

@@ -6,7 +6,10 @@ import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { motion } from 'motion/react';
-import { ABSENSI_SESSIONS } from '../../constants/absensi';
+import {
+  ABSENSI_SESSIONS,
+  SHOLAT_BERJAMAAH_SESSIONS,
+} from '../../constants/absensi';
 
 const safeDate = (dateStr: string) => {
   try {
@@ -23,6 +26,7 @@ export default function AbsensiWali() {
   const [selectedSantriId, setSelectedSantriId] = useState<string>('');
   const [absensi, setAbsensi] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<'berjamaah' | 'tahfidz'>('berjamaah');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -43,7 +47,12 @@ export default function AbsensiWali() {
 
   const fetchAbsensi = async (id: string) => {
     try {
-      const { data, error } = await supabase.from('absensi').select('*').eq('santri_id', id).order('date', { ascending: false }).limit(30);
+      const { data, error } = await supabase
+        .from('absensi')
+        .select('*')
+        .eq('santri_id', id)
+        .order('date', { ascending: false })
+        .limit(60);
       if (error) throw error;
       setAbsensi(data || []);
     } catch (error) { console.error(error); }
@@ -51,7 +60,16 @@ export default function AbsensiWali() {
 
   if (authLoading || loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>;
 
-  const groupedByDate = absensi.reduce<Record<string, typeof absensi>>((acc, item) => {
+  const activeSessions = mode === 'berjamaah' ? SHOLAT_BERJAMAAH_SESSIONS : ABSENSI_SESSIONS;
+
+  const filteredAbsensi = absensi.filter((item) => {
+    if (mode === 'berjamaah') {
+      return item.type === 'berjamaah' || (item.type !== 'tahfidz' && ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'].includes(item.session));
+    }
+    return item.type === 'tahfidz' || (item.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(item.session));
+  });
+
+  const groupedByDate = filteredAbsensi.reduce<Record<string, typeof absensi>>((acc, item) => {
     const key = typeof item.date === 'string' ? item.date.split('T')[0] : item.date ? String(item.date) : '';
     if (!key) return acc;
     if (!acc[key]) acc[key] = [];
@@ -62,10 +80,11 @@ export default function AbsensiWali() {
 
   return (
     <div className="space-y-6 pb-10">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="page-header">Kehadiran Santri</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Pantau absensi harian kegiatan belajar santri</p>
+          <p className="text-sm text-slate-500 mt-0.5">Pantau ketertiban ibadah dan kegiatan harian ananda di pesantren</p>
         </div>
         {santri.length > 1 && (
           <div className="relative min-w-[200px]">
@@ -79,23 +98,57 @@ export default function AbsensiWali() {
         )}
       </div>
 
+      {/* Mode Switcher: Sholat Berjamaah vs Tahfidz */}
+      <div className="flex bg-slate-200/60 p-1.5 rounded-2xl max-w-md gap-1">
+        <button
+          type="button"
+          onClick={() => setMode('berjamaah')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
+            mode === 'berjamaah'
+              ? 'bg-[#1e3a5f] text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          )}
+        >
+          <span>🕌</span> Sholat Berjamaah
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMode('tahfidz')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
+            mode === 'tahfidz'
+              ? 'bg-[#1e3a5f] text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          )}
+        >
+          <span>📖</span> Tahfidz & Kegiatan
+        </button>
+      </div>
+
+      {/* Main Card */}
       <div className="card overflow-hidden">
-        <div className="p-5 border-b border-slate-50 flex items-center justify-between">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#1e3a5f] text-white rounded-lg flex items-center justify-center">
-              <Calendar size={18} />
+            <div className="w-10 h-10 bg-[#1e3a5f] text-white rounded-xl flex items-center justify-center font-bold">
+              {mode === 'berjamaah' ? '🕌' : '📖'}
             </div>
-            <h3 className="text-lg font-bold text-slate-800">Riwayat Presensi</h3>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">
+                {mode === 'berjamaah' ? 'Presensi Sholat Berjamaah 5 Waktu' : 'Presensi Kegiatan Tahfidz'}
+              </h3>
+              <p className="text-xs text-slate-400">Riwayat presensi 30 hari terakhir</p>
+            </div>
           </div>
-          <span className="text-xs text-slate-500 hidden sm:block">30 hari terakhir</span>
         </div>
         
         <div className="p-5">
           {sortedDates.length === 0 ? (
             <div className="py-16 text-center">
               <ClipboardCheck size={40} className="mx-auto text-slate-200 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">Belum ada data kehadiran</p>
-              <p className="text-xs text-slate-300 mt-1">Data absensi akan muncul di sini setelah dicatat oleh pengajar.</p>
+              <p className="text-sm font-semibold text-slate-400">Belum ada data presensi</p>
+              <p className="text-xs text-slate-300 mt-1">Data presensi akan muncul di sini setelah dicatat oleh pembimbing/pengajar.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -103,24 +156,30 @@ export default function AbsensiWali() {
                 <motion.div key={dateKey} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
                   <p className="text-sm font-bold text-slate-800 mb-3">
-                    {format(safeDate(dateKey), 'EEEE, dd MMM yyyy', { locale: localeId })}
+                    {format(safeDate(dateKey), 'EEEE, dd MMMM yyyy', { locale: localeId })}
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {ABSENSI_SESSIONS.map((sesi) => {
+                  
+                  <div className={cn("grid gap-2.5", mode === 'berjamaah' ? "grid-cols-1 sm:grid-cols-5" : "grid-cols-1 sm:grid-cols-3")}>
+                    {activeSessions.map((sesi) => {
                       const item = groupedByDate[dateKey].find(
-                        (a) => (a.session || 'Shubuh') === sesi
+                        (a) => (a.session || 'Subuh') === sesi || (a.session || 'Shubuh') === sesi
                       );
                       return (
-                        <div key={sesi} className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-100">
-                          <span className="text-xs font-semibold text-slate-500">{sesi}</span>
+                        <div key={sesi} className="flex sm:flex-col items-center sm:items-start justify-between p-3 rounded-xl bg-white border border-slate-100/80 shadow-xs">
+                          <div className="mb-0 sm:mb-1">
+                            <span className="text-xs font-bold text-slate-700">{sesi}</span>
+                          </div>
+
                           {item ? (
-                            <span className={cn("px-2 py-0.5 rounded text-[10px] font-bold",
-                              item.status === 'Hadir' ? "bg-emerald-50 text-emerald-600" :
-                              item.status === 'Izin' ? "bg-sky-50 text-sky-600" :
-                              item.status === 'Sakit' ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"
-                            )}>{item.status}</span>
+                            <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-extrabold",
+                              item.status === 'Hadir' ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                              item.status === 'Izin' ? "bg-sky-50 text-sky-700 border border-sky-100" :
+                              item.status === 'Sakit' ? "bg-amber-50 text-amber-700 border border-amber-100" : "bg-rose-50 text-rose-700 border border-rose-100"
+                            )}>
+                              {item.status === 'Hadir' && mode === 'berjamaah' ? '✓ Berjamaah' : item.status}
+                            </span>
                           ) : (
-                            <span className="text-[10px] text-slate-300">Belum diisi</span>
+                            <span className="text-[10px] text-slate-300 font-medium">— Belum diisi</span>
                           )}
                         </div>
                       );

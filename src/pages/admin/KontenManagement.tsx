@@ -11,7 +11,7 @@ import { cn } from '../../utils/cn';
 
 type Tab = 'hero' | 'galeri';
 
-const GALERI_CATEGORIES = ['Kegiatan', 'Fasilitas', 'Kajian'];
+const GALERI_CATEGORIES = ['Kegiatan', 'Prestasi & Pencapaian', 'Kajian'];
 
 export default function KontenManagement() {
   const [tab, setTab] = useState<Tab>('hero');

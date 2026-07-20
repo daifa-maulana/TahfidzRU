@@ -50,9 +50,8 @@ export default function TahfidzManagement() {
   });
 
   const currentSantriObj = santri.find(s => s.id === selectedSantri);
-  const isShubuhSession = formData.session === 'Shubuh';
-  const isYanbuaShubuh = isShubuhSession && (currentSantriObj?.tahfidz_level === 'yanbua' || !currentSantriObj?.tahfidz_level);
-  const shubuhLevelLabel = currentSantriObj?.tahfidz_level === 'bilghoib'
+  const isYanbua = (currentSantriObj?.tahfidz_level === 'yanbua' || !currentSantriObj?.tahfidz_level);
+  const levelLabel = currentSantriObj?.tahfidz_level === 'bilghoib'
     ? 'Bil Ghoib'
     : currentSantriObj?.tahfidz_level === 'binnadzhor'
       ? 'Bin Nadzhor'
@@ -122,8 +121,8 @@ export default function TahfidzManagement() {
     try {
       let payload: any;
       const session = formData.session;
-      const isYanbuaShubuh = session === 'Shubuh' && (currentSantriObj?.tahfidz_level === 'yanbua' || !currentSantriObj?.tahfidz_level);
-      if (isYanbuaShubuh) {
+      const isYanbuaTarget = (currentSantriObj?.tahfidz_level === 'yanbua' || !currentSantriObj?.tahfidz_level);
+      if (isYanbuaTarget) {
         payload = {
           session,
           setoran_level: currentSantriObj?.tahfidz_level || 'yanbua',
@@ -260,12 +259,12 @@ export default function TahfidzManagement() {
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-slate-500">Level Tahfidz:</span>
                           <span className="font-semibold text-[#1e3a5f] bg-[#1e3a5f]/10 px-2 py-0.5 rounded">
-                            {shubuhLevelLabel}
+                            {levelLabel}
                           </span>
                         </div>
                       </div>
 
-                      {!isYanbuaShubuh ? (
+                      {!isYanbua ? (
                         <>
                           <div>
                             <label className="form-label">Jenis Setoran</label>
@@ -368,7 +367,7 @@ export default function TahfidzManagement() {
                       ) : (
                         <>
                           <div>
-                            <label className="form-label">Pilih Jilid ({shubuhLevelLabel})</label>
+                            <label className="form-label">Pilih Jilid ({levelLabel})</label>
                             <div className="relative">
                               <select className="input-field appearance-none pr-9 cursor-pointer" value={formData.surah}
                                 onChange={(e) => setFormData({ ...formData, surah: e.target.value })} required>
@@ -499,9 +498,9 @@ export default function TahfidzManagement() {
                     <span className="text-[10px] text-slate-400 font-mono">
                       {log.session || 'Shubuh'}
                     </span>
-                    {log.session !== 'Shubuh' && log.setoran_level && (
+                    {log.setoran_level && (
                       <span className="text-[10px] text-slate-400 font-mono">
-                        {log.setoran_level === 'bilghoib' ? 'Bil Ghoib' : 'Bin Nadzhor'}
+                        {log.setoran_level === 'bilghoib' ? 'Bil Ghoib' : log.setoran_level === 'binnadzhor' ? 'Bin Nadzhor' : "Yanbu'a"}
                       </span>
                     )}
                     {!log.surah?.startsWith('Jilid') && (

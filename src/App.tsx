@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { Database, ExternalLink, Loader2 } from 'lucide-react';
+import { Database, ExternalLink } from 'lucide-react';
 import { prefetchSantriData, initPrefetchDeps } from './pages/admin/SantriManagement';
 import { supabase } from './lib/supabase';
 import { dataService } from './services/data';
@@ -83,13 +82,23 @@ const SetupRequired = () => (
 function AppContent() {
   const { isConfigured, user, profile } = useAuth();
   const [prefetching, setPrefetching] = useState(false);
-  const [siteLoading, setSiteLoading] = useState(true);
 
-  // Animasi awal pembukaan website
+  // Ambil alih splash screen dari HTML: fade-out lalu hapus dari DOM
   useEffect(() => {
+    const splash = document.getElementById('splash');
+    if (!splash) return;
+
+    const elapsed = performance.now();
+    const MIN_DISPLAY = 1500;
+    const wait = Math.max(0, MIN_DISPLAY - elapsed);
+
     const timer = setTimeout(() => {
-      setSiteLoading(false);
-    }, 1500);
+      splash.style.opacity = '0';
+      splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+      // Fallback remove kalau transitionend gak fire
+      setTimeout(() => splash.remove(), 600);
+    }, wait);
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -108,44 +117,6 @@ function AppContent() {
 
   return (
     <>
-      <AnimatePresence>
-        {siteLoading && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: 'easeInOut' }}
-            className="fixed inset-0 z-[99999] bg-slate-900 flex flex-col items-center justify-center p-6 text-white overflow-hidden font-sans"
-          >
-            {/* Background gradient glowing effects */}
-            <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl" />
-            
-            <div className="relative z-10 flex flex-col items-center max-w-sm text-center">
-              {/* Pulsing logo */}
-              <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center p-2 mb-8 animate-pulse shadow-2xl">
-                <img 
-                  src="/logo.png" 
-                  alt="Logo" 
-                  className="w-full h-full object-contain" 
-                  onError={(e) => { 
-                    e.currentTarget.src = 'https://ui-avatars.com/api/?name=RU&background=A4C95A&color=fff'; 
-                  }} 
-                />
-              </div>
-              
-              <h2 className="text-xl font-bold tracking-tight mb-2">Roudlotul 'Ulum</h2>
-              <p className="text-xs text-slate-400 font-medium tracking-widest uppercase mb-8">PONDOK PESANTREN TAHFIDZ</p>
-              
-              {/* Spinner and loading message */}
-              <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2.5 rounded-full backdrop-blur-md">
-                <Loader2 className="animate-spin text-emerald-400" size={16} />
-                <span className="text-xs text-slate-300 font-medium">Mohon tunggu sebentar...</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Badge prefetch di pojok kiri bawah */}
       {prefetching && (
         <div className="fixed bottom-4 left-4 z-[9999] flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-slate-200 shadow-lg rounded-full px-3.5 py-2 text-xs text-slate-500 animate-pulse pointer-events-none">

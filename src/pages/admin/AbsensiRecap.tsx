@@ -1,24 +1,24 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
 import { BarChart3, Loader2, Download } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { id as localeId } from 'date-fns/locale';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
-  CAMPUS_ABSENSI_SESSIONS,
-  CAMPUS_ABSENSI_SESSION_LABEL,
+  ABSENSI_SESSIONS,
+  SHOLAT_BERJAMAAH_SESSIONS,
+} from '../../constants/absensi';
 
-  CAMPUS_LABEL,
-  createEmptySessionStats,
-  type CampusAbsensiSession,
-} from '../../constants/campus';
-
-const SESSIONS = CAMPUS_ABSENSI_SESSIONS;
-type TSession = CampusAbsensiSession;
+const createStatsObj = (sessionList: readonly string[]) => {
+  return Object.fromEntries(
+    sessionList.map((s) => [s, { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 }])
+  );
+};
 
 export default function AbsensiRecap() {
+  const [recapCategory, setRecapCategory] = useState<'berjamaah' | 'tahfidz'>('berjamaah');
   const [recapPeriod, setRecapPeriod] = useState<'month' | 'year'>('month');
   const [recapMonth, setRecapMonth] = useState(new Date().getMonth() + 1);
   const [recapYear, setRecapYear] = useState(new Date().getFullYear());
@@ -26,6 +26,8 @@ export default function AbsensiRecap() {
   const [recapLoading, setRecapLoading] = useState(false);
   const [selectedClass, setSelectedClass] = useState('All');
   const { toast, showToast } = useToast();
+
+  const currentSessions = recapCategory === 'berjamaah' ? SHOLAT_BERJAMAAH_SESSIONS : ABSENSI_SESSIONS;
 
   const fetchRecap = async () => {
     setRecapLoading(true);
@@ -38,16 +40,24 @@ export default function AbsensiRecap() {
 
   useEffect(() => { fetchRecap(); }, []);
 
-  const grouped: Record<string, { name: string; nis: string; class_name: string; sessions: Record<TSession, { hadir: number; izin: number; sakit: number; alpa: number; total: number }> }> = {};
-  recapData
+  const grouped: Record<string, { name: string; nis: string; class_name: string; sessions: Record<string, { hadir: number; izin: number; sakit: number; alpa: number; total: number }> }> = {};
+  
+  recapData.forEach((r: any) => {
+    const isMatchingType = recapCategory === 'berjamaah' 
+      ? (r.type === 'berjamaah' || (r.type !== 'tahfidz' && ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'].includes(r.session)))
+      : (r.type === 'tahfidz' || (r.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(r.session)));
+    if (!isMatchingType) return;
 
-    .forEach((r: any) => {
     const sid = r.santri_id;
     if (!grouped[sid]) {
-      grouped[sid] = { name: r.santri?.name || '-', nis: r.santri?.nis || '-', class_name: r.santri?.class_name || '-',
-        sessions: createEmptySessionStats() };
+      grouped[sid] = {
+        name: r.santri?.name || '-',
+        nis: r.santri?.nis || '-',
+        class_name: r.santri?.class_name || '-',
+        sessions: createStatsObj(currentSessions)
+      };
     }
-    const sess = r.session as TSession;
+    const sess = r.session as string;
     if (grouped[sid].sessions[sess]) {
       grouped[sid].sessions[sess].total++;
       if (r.status === 'Hadir') grouped[sid].sessions[sess].hadir++;
@@ -59,21 +69,22 @@ export default function AbsensiRecap() {
 
   const allClasses = ['All', ...new Set(Object.values(grouped).map(s => s.class_name).filter(c => c && c !== '-'))];
   const rows = Object.values(grouped).filter(s => selectedClass === 'All' || s.class_name === selectedClass).sort((a, b) => a.name.localeCompare(b.name));
-  const periodLabel = recapPeriod === 'month' ? `Bulan ${format(new Date(2000, recapMonth - 1, 1), 'MMMM', { locale: id })} ${recapYear}` : `Tahun ${recapYear}`;
+  const periodLabel = recapPeriod === 'month' ? `Bulan ${format(new Date(2000, recapMonth - 1, 1), 'MMMM', { locale: localeId })} ${recapYear}` : `Tahun ${recapYear}`;
+  const categoryTitle = recapCategory === 'berjamaah' ? 'SHOLAT BERJAMAAH 5 WAKTU' : 'KEGIATAN TAHFIDZ';
 
   const exportToWord = () => {
     let rowsHtml = '';
     rows.forEach((s, idx) => {
-      SESSIONS.forEach((sess, si) => {
-        const st = s.sessions[sess];
+      currentSessions.forEach((sess, si) => {
+        const st = s.sessions[sess] || { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 };
         const pct = st.total > 0 ? Math.round((st.hadir / st.total) * 100) : 0;
-        rowsHtml += `<tr>${si === 0 ? `<td rowspan="${SESSIONS.length}" style="border:1px solid #ddd;padding:6px;text-align:center;">${idx+1}</td><td rowspan="${SESSIONS.length}" style="border:1px solid #ddd;padding:6px;font-weight:bold;">${s.name} (${s.nis})</td><td rowspan="${SESSIONS.length}" style="border:1px solid #ddd;padding:6px;text-align:center;">${s.class_name}</td>` : ''}<td style="border:1px solid #ddd;padding:6px;text-align:center;">${sess}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.hadir}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.izin}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.sakit}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.alpa}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.total}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;">${pct}%</td></tr>`;
+        rowsHtml += `<tr>${si === 0 ? `<td rowspan="${currentSessions.length}" style="border:1px solid #ddd;padding:6px;text-align:center;">${idx+1}</td><td rowspan="${currentSessions.length}" style="border:1px solid #ddd;padding:6px;font-weight:bold;">${s.name} (${s.nis})</td><td rowspan="${currentSessions.length}" style="border:1px solid #ddd;padding:6px;text-align:center;">${s.class_name}</td>` : ''}<td style="border:1px solid #ddd;padding:6px;text-align:center;">${sess}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.hadir}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.izin}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.sakit}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.alpa}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.total}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;">${pct}%</td></tr>`;
       });
     });
-    const html = `<html><head><title>Rekap Presensi</title><style>body{font-family:Arial;font-size:12px;}table{border-collapse:collapse;width:100%;}th{border:1px solid #ddd;padding:8px;background:#f2f2f2;}</style></head><body><h2 style="text-align:center;">REKAP PRESENSI SANTRI</h2><h3 style="text-align:center;">PONDOK PESANTREN ROUDHLATUL ULUM</h3><p style="text-align:center;">${periodLabel}</p><table><thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>Sesi</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Total</th><th>%</th></tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`;
+    const html = `<html><head><title>Rekap Presensi ${categoryTitle}</title><style>body{font-family:Arial;font-size:12px;}table{border-collapse:collapse;width:100%;}th{border:1px solid #ddd;padding:8px;background:#f2f2f2;}</style></head><body><h2 style="text-align:center;">REKAP PRESENSI ${categoryTitle}</h2><h3 style="text-align:center;">PONDOK PESANTREN ROUDHLATUL ULUM</h3><p style="text-align:center;">${periodLabel}</p><table><thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>Sesi</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Total</th><th>%</th></tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`;
     const blob = new Blob(['\ufeff'+html], { type: 'application/msword' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `Rekap_Presensi_${periodLabel.replace(/\s+/g,'_')}.doc`; a.click();
+    a.download = `Rekap_Presensi_${recapCategory}_${periodLabel.replace(/\s+/g,'_')}.doc`; a.click();
     showToast('File Word berhasil diunduh', 'success');
   };
 
@@ -82,9 +93,38 @@ export default function AbsensiRecap() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-header">Rekap Presensi</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Rekapitulasi kehadiran santri {CAMPUS_LABEL.toLowerCase()} per sesi — {CAMPUS_ABSENSI_SESSION_LABEL}</p>
+          <p className="text-sm text-slate-500 mt-0.5">Rekapitulasi statistik kehadiran santri per sesi</p>
         </div>
         {rows.length > 0 && <button onClick={exportToWord} className="btn-secondary self-start"><Download size={14} /> Export Word</button>}
+      </div>
+
+      {/* Mode Switcher */}
+      <div className="flex bg-slate-200/60 p-1.5 rounded-2xl max-w-md gap-1">
+        <button
+          type="button"
+          onClick={() => setRecapCategory('berjamaah')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
+            recapCategory === 'berjamaah'
+              ? 'bg-[#1e3a5f] text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          )}
+        >
+          <span>🕌</span> Sholat Berjamaah (5 Waktu)
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setRecapCategory('tahfidz')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
+            recapCategory === 'tahfidz'
+              ? 'bg-[#1e3a5f] text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          )}
+        >
+          <span>📖</span> Tahfidz & Kegiatan
+        </button>
       </div>
 
       <div className="card p-5 border-[#1e3a5f]/10">
@@ -100,7 +140,7 @@ export default function AbsensiRecap() {
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Bulan</label>
               <select className="input-field w-auto" value={recapMonth} onChange={(e) => setRecapMonth(Number(e.target.value))}>
-                {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{format(new Date(2000, i, 1), 'MMMM', { locale: id })}</option>)}
+                {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{format(new Date(2000, i, 1), 'MMMM', { locale: localeId })}</option>)}
               </select>
             </div>
           )}
@@ -124,9 +164,11 @@ export default function AbsensiRecap() {
       </div>
 
       <div className="card overflow-hidden border-[#1e3a5f]/10">
-        <div className="px-5 py-3.5 border-b border-slate-100">
-          <h3 className="section-title">Rekap Per Sesi</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">{periodLabel} · {rows.length} Santri</p>
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="section-title">Rekap Presensi {recapCategory === 'berjamaah' ? 'Sholat Berjamaah' : 'Tahfidz & Kegiatan'}</h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">{periodLabel} · {rows.length} Santri</p>
+          </div>
         </div>
         {recapLoading ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-400">
@@ -151,19 +193,24 @@ export default function AbsensiRecap() {
               </thead>
               <tbody>
                 {rows.map((s) => (
-                  SESSIONS.map((sess, si) => {
-                    const st = s.sessions[sess];
+                  currentSessions.map((sess, si) => {
+                    const st = s.sessions[sess] || { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 };
                     const pct = st.total > 0 ? Math.round((st.hadir / st.total) * 100) : 0;
                     return (
-                      <tr key={`${s.nis}-${sess}`} className={cn('hover:bg-slate-50/60', si === SESSIONS.length - 1 ? 'border-b-2 border-slate-200' : 'border-b border-slate-50')}>
+                      <tr key={`${s.nis}-${sess}`} className={cn('hover:bg-slate-50/60', si === currentSessions.length - 1 ? 'border-b-2 border-slate-200' : 'border-b border-slate-50')}>
                         {si === 0 && (
                           <>
-                            <td className="px-3 py-2 font-semibold text-slate-800" rowSpan={SESSIONS.length}>{s.name}<span className="text-slate-400 font-mono ml-1.5 text-[10px]">{s.nis}</span></td>
-                            <td className="px-2 py-2 text-center text-slate-500 text-[11px]" rowSpan={SESSIONS.length}>{s.class_name}</td>
+                            <td className="px-3 py-2 font-semibold text-slate-800" rowSpan={currentSessions.length}>{s.name}<span className="text-slate-400 font-mono ml-1.5 text-[10px]">{s.nis}</span></td>
+                            <td className="px-2 py-2 text-center text-slate-500 text-[11px]" rowSpan={currentSessions.length}>{s.class_name}</td>
                           </>
                         )}
                         <td className="px-2 py-2 text-center">
-                          <span className={cn('px-2 py-0.5 rounded-full text-[9px] font-bold', sess === 'Shubuh' ? 'bg-indigo-50 text-indigo-700' : sess === 'Ashar' ? 'bg-orange-50 text-orange-700' : sess === 'Isya' ? 'bg-violet-50 text-violet-700' : 'bg-purple-50 text-purple-700')}>{sess}</span>
+                          <span className={cn('px-2 py-0.5 rounded-full text-[9px] font-bold',
+                            sess === 'Subuh' || sess === 'Shubuh' ? 'bg-indigo-50 text-indigo-700' :
+                            sess === 'Dzuhur' ? 'bg-amber-50 text-amber-700' :
+                            sess === 'Ashar' ? 'bg-orange-50 text-orange-700' :
+                            sess === 'Maghrib' ? 'bg-rose-50 text-rose-700' : 'bg-purple-50 text-purple-700'
+                          )}>{sess}</span>
                         </td>
                         <td className="px-2 py-2 text-center font-bold text-emerald-600">{st.hadir}</td>
                         <td className="px-2 py-2 text-center font-bold text-sky-600">{st.izin}</td>

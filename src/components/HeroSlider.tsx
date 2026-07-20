@@ -12,6 +12,7 @@ export default function HeroSlider() {
   const [slides, setSlides] = useState<HeroSlide[]>(FALLBACK_HERO_SLIDES);
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState(0);
+  const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
@@ -39,7 +40,11 @@ export default function HeroSlider() {
   const goTo = useCallback(
     (index: number) => {
       if (total === 0) return;
-      setCurrent(((index % total) + total) % total);
+      setCurrent((prev) => {
+        const next = ((index % total) + total) % total;
+        if (next !== prev) setPrevIndex(prev);
+        return next;
+      });
     },
     [total]
   );
@@ -85,44 +90,47 @@ export default function HeroSlider() {
   return (
     <section className="relative w-full min-h-[100svh] flex items-end overflow-hidden">
       <div className="absolute inset-0 bg-pesantren-dark">
-        {total > 0 && slides.map((s, index) => {
-          const isActive = index === current;
-          return (
+        <AnimatePresence initial={false}>
+          {prevIndex !== null && slides[prevIndex] && (
             <motion.div
-              key={s.id || index}
-              initial={{ opacity: 0, filter: 'blur(12px)' }}
-              animate={{ 
-                opacity: isActive ? 1 : 0, 
-                filter: isActive ? 'blur(0px)' : 'blur(12px)',
-                zIndex: isActive ? 10 : 0
-              }}
-              transition={{ duration: 1.3, ease: 'easeInOut' }}
+              key={`exit-${prevIndex}`}
+              initial={{ opacity: 1, filter: 'blur(0px)' }}
+              animate={{ opacity: 0, filter: 'blur(12px)' }}
+              exit={{ opacity: 0, filter: 'blur(12px)' }}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
               className="absolute inset-0"
+              onAnimationComplete={() => setPrevIndex(null)}
             >
-              {s.type === 'video' ? (
-                <video
-                  autoPlay
-                  muted
-                  loop
-                  preload="auto"
-                  playsInline
-                  poster={s.poster}
-                  className="w-full h-full object-cover opacity-60"
-                >
-                  <source src={s.src} type="video/mp4" />
+              {slides[prevIndex].type === 'video' ? (
+                <video autoPlay muted loop preload="auto" playsInline poster={slides[prevIndex].poster} className="w-full h-full object-cover opacity-60">
+                  <source src={slides[prevIndex].src} type="video/mp4" />
                 </video>
               ) : (
-                <img
-                  src={s.src}
-                  alt={s.alt}
-                  className="w-full h-full object-cover opacity-60"
-                  loading="eager"
-                  fetchPriority={isActive ? "high" : "low"}
-                />
+                <img src={slides[prevIndex].src} alt={slides[prevIndex].alt} className="w-full h-full object-cover opacity-60" loading="eager" fetchPriority="low" />
               )}
             </motion.div>
-          );
-        })}
+          )}
+
+          {slides[current] && (
+            <motion.div
+              key={`enter-${current}`}
+              initial={{ opacity: 0, filter: 'blur(12px)' }}
+              animate={{ opacity: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, filter: 'blur(12px)' }}
+              transition={{ duration: 0.8, ease: 'easeInOut' }}
+              className="absolute inset-0"
+              style={{ willChange: 'opacity, filter' }}
+            >
+              {slides[current].type === 'video' ? (
+                <video autoPlay muted loop preload="auto" playsInline poster={slides[current].poster} className="w-full h-full object-cover opacity-60">
+                  <source src={slides[current].src} type="video/mp4" />
+                </video>
+              ) : (
+                <img src={slides[current].src} alt={slides[current].alt} className="w-full h-full object-cover opacity-60" loading="eager" fetchPriority="high" />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="absolute inset-0 bg-gradient-to-t from-pesantren-dark/95 via-pesantren-dark/60 to-pesantren-dark/30" />
         <div className="absolute inset-0 bg-gradient-to-r from-pesantren-dark/40 to-transparent" />
@@ -135,6 +143,7 @@ export default function HeroSlider() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             className="max-w-3xl"
+            style={{ willChange: 'opacity, transform' }}
           >
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-bold uppercase tracking-widest mb-6">
               <Star className="text-pesantren-yellow fill-pesantren-yellow" size={14} />

@@ -56,10 +56,11 @@ export const dataService = {
   deleteSantri: (id: string) => handleResponse(supabase.from('santri').delete().eq('id', id)),
 
   // Absensi
-  getAbsensiList: (date?: string, session?: AbsensiSession) => {
+  getAbsensiList: (date?: string, session?: string, type?: string) => {
     let query = supabase.from('absensi').select('*, santri(name, nis, class_name)');
     if (date) query = query.eq('date', date);
     if (session) query = query.eq('session', session);
+    if (type) query = query.eq('type', type);
     return handleResponse(query);
   },
   getAbsensiBySantri: (santriId: string) => handleResponse(
@@ -71,6 +72,7 @@ export const dataService = {
     if (absensiData.length === 0) return null;
     const date = absensiData[0].date;
     const session = absensiData[0].session || 'Shubuh';
+    const absType = absensiData[0].type || 'tahfidz';
     const santriIds = absensiData.map(a => a.santri_id);
 
     await supabase
@@ -78,6 +80,7 @@ export const dataService = {
       .delete()
       .eq('date', date)
       .eq('session', session)
+      .eq('type', absType)
       .in('santri_id', santriIds);
 
     return handleResponse(supabase.from('absensi').insert(absensiData));

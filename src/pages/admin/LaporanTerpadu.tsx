@@ -17,7 +17,7 @@ import {
 } from '../../constants/campus';
 
 export default function LaporanTerpadu() {
-  const [reportType, setReportType] = useState<'keseluruhan' | 'satu-santri' | 'rekap-presensi' | 'rekap-setoran'>('keseluruhan');
+  const [reportType, setReportType] = useState<'keseluruhan' | 'satu-santri' | 'rekap-berjamaah' | 'rekap-presensi' | 'rekap-setoran'>('keseluruhan');
   const [selectedSantriId, setSelectedSantriId] = useState<string>('');
   
   const [recapPeriod, setRecapPeriod] = useState<'month' | 'year'>('month');
@@ -63,20 +63,40 @@ export default function LaporanTerpadu() {
   const thirdSession = CAMPUS_ABSENSI_SESSIONS[2];
 
   const processedData = santriList
-
     .filter(s => selectedClass === 'All' || s.class_name === selectedClass)
     .map(student => {
       const studentAbsensi = absensiLogs.filter(a => a.santri_id === student.id);
+      
+      const sholatBerjamaahSummary: Record<string, { hadir: number; total: number }> = {
+        Subuh: { hadir: 0, total: 0 },
+        Dzuhur: { hadir: 0, total: 0 },
+        Ashar: { hadir: 0, total: 0 },
+        Maghrib: { hadir: 0, total: 0 },
+        Isya: { hadir: 0, total: 0 }
+      };
+
       const attendanceSummary = createEmptySessionStats();
 
       studentAbsensi.forEach(a => {
-        const session = a.session as CampusAbsensiSession;
-        if (attendanceSummary[session]) {
-          attendanceSummary[session].total++;
-          if (a.status === 'Hadir') attendanceSummary[session].hadir++;
-          else if (a.status === 'Izin') attendanceSummary[session].izin++;
-          else if (a.status === 'Sakit') attendanceSummary[session].sakit++;
-          else if (a.status === 'Alpa') attendanceSummary[session].alpa++;
+        const isBerjamaah = a.type === 'berjamaah' || (a.type !== 'tahfidz' && ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'].includes(a.session));
+        if (isBerjamaah) {
+          const session = (a.session || 'Subuh') as string;
+          if (sholatBerjamaahSummary[session]) {
+            sholatBerjamaahSummary[session].total++;
+            if (a.status === 'Hadir') sholatBerjamaahSummary[session].hadir++;
+          }
+        }
+        
+        const isTahfidz = a.type === 'tahfidz' || (a.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(a.session));
+        if (isTahfidz) {
+          const session = a.session as CampusAbsensiSession;
+          if (attendanceSummary[session]) {
+            attendanceSummary[session].total++;
+            if (a.status === 'Hadir') attendanceSummary[session].hadir++;
+            else if (a.status === 'Izin') attendanceSummary[session].izin++;
+            else if (a.status === 'Sakit') attendanceSummary[session].sakit++;
+            else if (a.status === 'Alpa') attendanceSummary[session].alpa++;
+          }
         }
       });
 
@@ -94,6 +114,7 @@ export default function LaporanTerpadu() {
 
       return {
         ...student,
+        sholatBerjamaahSummary,
         attendanceSummary,
         tahfidzCount: studentTahfidz.length,
         setoranBaruCount,
@@ -112,37 +133,37 @@ export default function LaporanTerpadu() {
       : `Tahun ${recapYear}`;
   };
 
-  const getAbsensiRecapGrouped = () => {
-    const grouped: Record<string, { name: string; nis: string; class_name: string; sessions: Record<'Shubuh' | 'Ashar' | 'Maghrib' | 'Isya', { hadir: number; izin: number; sakit: number; alpa: number; total: number }> }> = {};
-    absensiLogs.forEach((r: any) => {
+  const getAbsensiRecapGrouped = (targetType: 'berjamaah' | 'tahfidz' = 'tahfidz') => {
+    const grouped: Record<string, { name: string; nis: string; class_name: string; sessions: Record<string, { hadir: number; izin: number; sakit: number; alpa: number; total: number }> }> = {};
+    
+    const logsToUse = absensiLogs.filter((r: any) => {
+      if (targetType === 'berjamaah') {
+        return r.type === 'berjamaah' || (r.type !== 'tahfidz' && ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'].includes(r.session));
+      }
+      return r.type === 'tahfidz' || (r.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(r.session));
+    });
+
+    logsToUse.forEach((r: any) => {
       const sid = r.santri_id;
       if (!grouped[sid]) {
         grouped[sid] = {
           name: r.santri?.name || '-',
           nis: r.santri?.nis || '-',
           class_name: r.santri?.class_name || '-',
-          sessions: {
-            Shubuh: { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 },
-            Ashar: { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 },
-            Maghrib: { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 },
-            Isya: { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 }
-          }
+          sessions: {}
         };
       }
-      const sess = r.session as 'Shubuh' | 'Ashar' | 'Maghrib' | 'Isya';
-      if (grouped[sid].sessions[sess]) {
-        grouped[sid].sessions[sess].total++;
-        if (r.status === 'Hadir') grouped[sid].sessions[sess].hadir++;
-        else if (r.status === 'Izin') grouped[sid].sessions[sess].izin++;
-        else if (r.status === 'Sakit') grouped[sid].sessions[sess].sakit++;
-        else if (r.status === 'Alpa') grouped[sid].sessions[sess].alpa++;
+      const sess = (r.session || 'Subuh') as string;
+      if (!grouped[sid].sessions[sess]) {
+        grouped[sid].sessions[sess] = { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 };
       }
+      grouped[sid].sessions[sess].total++;
+      if (r.status === 'Hadir') grouped[sid].sessions[sess].hadir++;
+      else if (r.status === 'Izin') grouped[sid].sessions[sess].izin++;
+      else if (r.status === 'Sakit') grouped[sid].sessions[sess].sakit++;
+      else if (r.status === 'Alpa') grouped[sid].sessions[sess].alpa++;
     });
-
-    const list = Object.values(grouped)
-      .filter(s => selectedClass === 'All' || s.class_name === selectedClass)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    return list;
+    return Object.values(grouped).filter(s => selectedClass === 'All' || s.class_name === selectedClass);
   };
 
   const filteredTahfidzLogs = tahfidzLogs.filter(
@@ -155,8 +176,14 @@ export default function LaporanTerpadu() {
     let rowsHtml = '';
     
     processedData.forEach((row, idx) => {
+      const subuh = `${row.sholatBerjamaahSummary.Subuh.hadir}/${row.sholatBerjamaahSummary.Subuh.total}`;
+      const dzuhur = `${row.sholatBerjamaahSummary.Dzuhur.hadir}/${row.sholatBerjamaahSummary.Dzuhur.total}`;
+      const ashar = `${row.sholatBerjamaahSummary.Ashar.hadir}/${row.sholatBerjamaahSummary.Ashar.total}`;
+      const maghrib = `${row.sholatBerjamaahSummary.Maghrib.hadir}/${row.sholatBerjamaahSummary.Maghrib.total}`;
+      const isya = `${row.sholatBerjamaahSummary.Isya.hadir}/${row.sholatBerjamaahSummary.Isya.total}`;
+
       const shubuh = `${row.attendanceSummary.Shubuh.hadir}/${row.attendanceSummary.Shubuh.total}`;
-      const ashar = `${row.attendanceSummary.Ashar.hadir}/${row.attendanceSummary.Ashar.total}`;
+      const tAshar = `${row.attendanceSummary.Ashar.hadir}/${row.attendanceSummary.Ashar.total}`;
       const thirdSess = `${row.attendanceSummary[thirdSession].hadir}/${row.attendanceSummary[thirdSession].total}`;
       
       const latestStr = row.latestSetoran 
@@ -171,8 +198,13 @@ export default function LaporanTerpadu() {
           <td style="border: 1px solid #ddd; padding: 6px; font-weight: bold;">${row.name}<br/><span style="color: #666; font-size: 10px;">NIS: ${row.nis}</span></td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${row.class_name || '-'}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${levelStr}</td>
-          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${shubuh}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${subuh}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${dzuhur}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${ashar}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${maghrib}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${isya}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${shubuh}</td>
+          <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${tAshar}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${thirdSess}</td>
           <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${row.setoranBaruCount} / ${row.murojaahCount}</td>
           <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${latestStr}</td>
@@ -189,8 +221,8 @@ export default function LaporanTerpadu() {
           h2 { text-align: center; margin-bottom: 5px; }
           h3 { text-align: center; margin-top: 0; color: #555; }
           table { border-collapse: collapse; width: 100%; margin-top: 15px; }
-          th { border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; text-align: center; }
-          td { border: 1px solid #ddd; padding: 8px; }
+          th { border: 1px solid #ddd; padding: 6px; background-color: #f2f2f2; font-weight: bold; text-align: center; font-size: 11px; }
+          td { border: 1px solid #ddd; padding: 6px; }
           .footer { margin-top: 40px; text-align: right; }
         </style>
       </head>
@@ -202,14 +234,20 @@ export default function LaporanTerpadu() {
         <table>
           <thead>
             <tr>
-              <th rowspan="2" style="width: 5%">No</th>
-              <th rowspan="2" style="width: 20%">Nama Santri</th>
-              <th rowspan="2" style="width: 10%">Kelas</th>
-              <th rowspan="2" style="width: 10%">Tingkat</th>
-              <th colspan="3">Presensi Sesi (Hadir/Total)</th>
+              <th rowspan="2" style="width: 4%">No</th>
+              <th rowspan="2" style="width: 16%">Nama Santri</th>
+              <th rowspan="2" style="width: 6%">Kelas</th>
+              <th rowspan="2" style="width: 8%">Tingkat</th>
+              <th colspan="5">Presensi Sholat Berjamaah</th>
+              <th colspan="3">Presensi Ngaji</th>
               <th colspan="2">Perkembangan Tahfidz</th>
             </tr>
             <tr>
+              <th>Subuh</th>
+              <th>Dzuhur</th>
+              <th>Ashar</th>
+              <th>Maghrib</th>
+              <th>Isya</th>
               <th>Shubuh</th>
               <th>Ashar</th>
               <th>${thirdSession}</th>
@@ -435,22 +473,25 @@ export default function LaporanTerpadu() {
     showToast('Rapor Word berhasil diunduh', 'success');
   };
 
-  const exportAbsensiToWord = () => {
+  const exportAbsensiToWord = (type: 'berjamaah' | 'tahfidz' = 'tahfidz') => {
     const rows = getAbsensiRecapGrouped();
     const periodLabel = getPeriodLabel();
     let rowsHtml = '';
-    const SESSIONS = ['Shubuh', 'Ashar', 'Maghrib', 'Isya'] as const;
+    const SESSIONS = type === 'berjamaah'
+      ? (['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'] as const)
+      : (['Shubuh', 'Ashar', 'Maghrib'] as const);
+    const title = type === 'berjamaah' ? 'REKAP PRESENSI SHOLAT BERJAMAAH 5 WAKTU' : 'REKAP PRESENSI KEGIATAN TAHFIDZ';
     rows.forEach((s, idx) => {
       SESSIONS.forEach((sess, si) => {
-        const st = s.sessions[sess];
+        const st = s.sessions[sess] || { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 };
         const pct = st.total > 0 ? Math.round((st.hadir / st.total) * 100) : 0;
-        rowsHtml += `<tr>${si === 0 ? `<td rowspan="4" style="border:1px solid #ddd;padding:6px;text-align:center;">${idx+1}</td><td rowspan="4" style="border:1px solid #ddd;padding:6px;font-weight:bold;">${s.name} (${s.nis})</td><td rowspan="4" style="border:1px solid #ddd;padding:6px;text-align:center;">${s.class_name}</td>` : ''}<td style="border:1px solid #ddd;padding:6px;text-align:center;">${sess}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.hadir}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.izin}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.sakit}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.alpa}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.total}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;">${pct}%</td></tr>`;
+        rowsHtml += `<tr>${si === 0 ? `<td rowspan="${SESSIONS.length}" style="border:1px solid #ddd;padding:6px;text-align:center;">${idx+1}</td><td rowspan="${SESSIONS.length}" style="border:1px solid #ddd;padding:6px;font-weight:bold;">${s.name} (${s.nis})</td><td rowspan="${SESSIONS.length}" style="border:1px solid #ddd;padding:6px;text-align:center;">${s.class_name}</td>` : ''}<td style="border:1px solid #ddd;padding:6px;text-align:center;">${sess}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.hadir}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.izin}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.sakit}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.alpa}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;">${st.total}</td><td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;">${pct}%</td></tr>`;
       });
     });
-    const html = `<html><head><title>Rekap Presensi</title><style>body{font-family:Arial,sans-serif;font-size:12px;}table{border-collapse:collapse;width:100%;}th{border:1px solid #ddd;padding:8px;background:#f2f2f2;}</style></head><body><h2 style="text-align:center;">REKAP PRESENSI SANTRI</h2><h3 style="text-align:center;">PONDOK PESANTREN ROUDHLATUL ULUM</h3><p style="text-align:center;">${periodLabel}</p><table><thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>Sesi</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Total</th><th>%</th></tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`;
+    const html = `<html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;font-size:12px;}table{border-collapse:collapse;width:100%;}th{border:1px solid #ddd;padding:8px;background:#f2f2f2;}</style></head><body><h2 style="text-align:center;">${title}</h2><h3 style="text-align:center;">PONDOK PESANTREN ROUDHLATUL ULUM</h3><p style="text-align:center;">${periodLabel}</p><table><thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>Sesi</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>Total</th><th>%</th></tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`;
     const blob = new Blob(['\ufeff'+html], { type: 'application/msword' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `Rekap_Presensi_${periodLabel.replace(/\s+/g,'_')}.doc`; a.click();
+    a.download = `${title.replace(/\s+/g,'_')}_${periodLabel.replace(/\s+/g,'_')}.doc`; a.click();
     showToast('File Word berhasil diunduh', 'success');
   };
 
@@ -501,8 +542,8 @@ export default function LaporanTerpadu() {
               <th>No</th>
               <th>Nama Santri</th>
               <th>Surah/Juz/Jilid</th>
-              <th>Dari Ayat/Hal</th>
-              <th>Sampai Ayat/Hal</th>
+              <th>Dari Halaman/Ayat</th>
+              <th>Sampai Halaman/Ayat</th>
               <th>Jumlah</th>
               <th>Jenis</th>
               <th>Skema</th>
@@ -538,8 +579,10 @@ export default function LaporanTerpadu() {
       } else {
         showToast('Silakan pilih santri terlebih dahulu', 'error');
       }
+    } else if (reportType === 'rekap-berjamaah') {
+      exportAbsensiToWord('berjamaah');
     } else if (reportType === 'rekap-presensi') {
-      exportAbsensiToWord();
+      exportAbsensiToWord('tahfidz');
     } else if (reportType === 'rekap-setoran') {
       exportTahfidzToWord();
     }
@@ -567,7 +610,7 @@ export default function LaporanTerpadu() {
             disabled={loading || (
               reportType === 'keseluruhan' ? processedData.length === 0 :
               reportType === 'satu-santri' ? !selectedSantriId :
-              reportType === 'rekap-presensi' ? getAbsensiRecapGrouped().length === 0 :
+              (reportType === 'rekap-presensi' || reportType === 'rekap-berjamaah') ? getAbsensiRecapGrouped().length === 0 :
               filteredTahfidzLogs.length === 0
             )} 
             className="btn-secondary"
@@ -621,6 +664,18 @@ export default function LaporanTerpadu() {
           Rapor Individu
         </button>
         <button
+          onClick={() => setReportType('rekap-berjamaah')}
+          className={cn(
+            "py-2.5 px-5 text-sm font-semibold border-b-2 -mb-px transition-colors flex items-center gap-2 cursor-pointer",
+            reportType === 'rekap-berjamaah'
+              ? "border-[#1e3a5f] text-[#1e3a5f] font-bold"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <ClipboardCheck size={16} />
+          Rekap Sholat Berjamaah
+        </button>
+        <button
           onClick={() => setReportType('rekap-presensi')}
           className={cn(
             "py-2.5 px-5 text-sm font-semibold border-b-2 -mb-px transition-colors flex items-center gap-2 cursor-pointer",
@@ -630,7 +685,7 @@ export default function LaporanTerpadu() {
           )}
         >
           <ClipboardCheck size={16} />
-          Rekap Presensi
+          Rekap Presensi Tahfidz
         </button>
         <button
           onClick={() => setReportType('rekap-setoran')}
@@ -719,8 +774,10 @@ export default function LaporanTerpadu() {
                 ? 'LAPORAN PERKEMBANGAN SANTRI TERPADU' 
                 : reportType === 'satu-santri' 
                 ? 'RAPOR HASIL BELAJAR SANTRI INDIVIDU' 
+                : reportType === 'rekap-berjamaah'
+                ? 'REKAPITULASI PRESENSI SHOLAT BERJAMAAH 5 WAKTU'
                 : reportType === 'rekap-presensi'
-                ? 'REKAPITULASI PRESENSI SANTRI'
+                ? 'REKAPITULASI PRESENSI TAHFIDZ & KEGIATAN'
                 : 'REKAPITULASI SETORAN HAFALAN SANTRI'}
             </h2>
             <h3 className="text-lg font-bold text-[#1e3a5f] uppercase tracking-wider mt-0.5">PONDOK PESANTREN ROUDHLATUL ULUM</h3>
@@ -746,10 +803,16 @@ export default function LaporanTerpadu() {
                       <th className="px-3 py-3 font-extrabold text-[10px] uppercase tracking-wider border border-slate-200" rowSpan={2}>Nama Santri</th>
                       <th className="px-3 py-3 font-extrabold text-[10px] uppercase tracking-wider text-center border border-slate-200" rowSpan={2}>Kelas</th>
                       <th className="px-3 py-3 font-extrabold text-[10px] uppercase tracking-wider text-center border border-slate-200" rowSpan={2}>Tingkat</th>
-                      <th className="px-3 py-2 font-extrabold text-[10px] uppercase tracking-wider text-center border border-slate-200" colSpan={3}>Presensi (Hadir/Total)</th>
+                      <th className="px-3 py-2 font-extrabold text-[10px] uppercase tracking-wider text-center border border-slate-200" colSpan={5}>Presensi Sholat Berjamaah (Hadir/Total)</th>
+                      <th className="px-3 py-2 font-extrabold text-[10px] uppercase tracking-wider text-center border border-slate-200" colSpan={3}>Presensi Ngaji (Hadir/Total)</th>
                       <th className="px-3 py-2 font-extrabold text-[10px] uppercase tracking-wider text-center border border-slate-200" colSpan={2}>Tahfidz</th>
                     </tr>
                     <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                      <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Subuh</th>
+                      <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Dzuhur</th>
+                      <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Ashar</th>
+                      <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Maghrib</th>
+                      <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Isya</th>
                       <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Shubuh</th>
                       <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">Ashar</th>
                       <th className="px-2 py-2 font-bold text-[9px] uppercase text-center border border-slate-200">{thirdSession}</th>
@@ -759,8 +822,14 @@ export default function LaporanTerpadu() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
                     {processedData.map((row, idx) => {
+                      const subuh = row.sholatBerjamaahSummary.Subuh;
+                      const dzuhur = row.sholatBerjamaahSummary.Dzuhur;
+                      const ashar = row.sholatBerjamaahSummary.Ashar;
+                      const maghrib = row.sholatBerjamaahSummary.Maghrib;
+                      const isya = row.sholatBerjamaahSummary.Isya;
+
                       const shubuh = row.attendanceSummary.Shubuh;
-                      const ashar = row.attendanceSummary.Ashar;
+                      const tAshar = row.attendanceSummary.Ashar;
                       const thirdSessRow = row.attendanceSummary[thirdSession];
 
                       return (
@@ -781,13 +850,35 @@ export default function LaporanTerpadu() {
                               {row.tahfidz_level === 'bilghoib' ? 'Bil Ghoib' : 'Bin Nadzhor'}
                             </span>
                           </td>
+                          {/* Presensi Sholat Berjamaah (5 Waktu) */}
+                          <td className="px-2 py-3 text-center border border-slate-200">
+                            <span className="font-semibold text-slate-700">{subuh.hadir}</span>
+                            <span className="text-slate-400 font-light">/{subuh.total}</span>
+                          </td>
+                          <td className="px-2 py-3 text-center border border-slate-200">
+                            <span className="font-semibold text-slate-700">{dzuhur.hadir}</span>
+                            <span className="text-slate-400 font-light">/{dzuhur.total}</span>
+                          </td>
+                          <td className="px-2 py-3 text-center border border-slate-200">
+                            <span className="font-semibold text-slate-700">{ashar.hadir}</span>
+                            <span className="text-slate-400 font-light">/{ashar.total}</span>
+                          </td>
+                          <td className="px-2 py-3 text-center border border-slate-200">
+                            <span className="font-semibold text-slate-700">{maghrib.hadir}</span>
+                            <span className="text-slate-400 font-light">/{maghrib.total}</span>
+                          </td>
+                          <td className="px-2 py-3 text-center border border-slate-200">
+                            <span className="font-semibold text-slate-700">{isya.hadir}</span>
+                            <span className="text-slate-400 font-light">/{isya.total}</span>
+                          </td>
+                          {/* Presensi Ngaji (3 Sesi) */}
                           <td className="px-2 py-3 text-center border border-slate-200">
                             <span className="font-semibold text-slate-700">{shubuh.hadir}</span>
                             <span className="text-slate-400 font-light">/{shubuh.total}</span>
                           </td>
                           <td className="px-2 py-3 text-center border border-slate-200">
-                            <span className="font-semibold text-slate-700">{ashar.hadir}</span>
-                            <span className="text-slate-400 font-light">/{ashar.total}</span>
+                            <span className="font-semibold text-slate-700">{tAshar.hadir}</span>
+                            <span className="text-slate-400 font-light">/{tAshar.total}</span>
                           </td>
                           <td className="px-2 py-3 text-center border border-slate-200">
                             <span className="font-semibold text-slate-700">{thirdSessRow.hadir}</span>
@@ -1014,13 +1105,20 @@ export default function LaporanTerpadu() {
                 <p className="text-sm font-semibold">Pilih santri terlebih dahulu untuk menampilkan rapor individu</p>
               </div>
             )
-          ) : reportType === 'rekap-presensi' ? (
-            /* REKAP PRESENSI VIEW */
+          ) : reportType === 'rekap-berjamaah' || reportType === 'rekap-presensi' ? (
+            /* REKAP PRESENSI & REKAP BERJAMAAH VIEW */
             (() => {
-              const rows = getAbsensiRecapGrouped();
-              const SESSIONS = ['Shubuh', 'Ashar', 'Maghrib', 'Isya'] as const;
+              const isBerjamaah = reportType === 'rekap-berjamaah';
+              const rows = getAbsensiRecapGrouped(isBerjamaah ? 'berjamaah' : 'tahfidz');
+              const SESSIONS = isBerjamaah
+                ? (['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'] as const)
+                : (['Shubuh', 'Ashar', 'Maghrib'] as const);
               return rows.length > 0 ? (
                 <div className="overflow-x-auto">
+                  <div className="p-3 bg-slate-50 border-b border-slate-200 font-bold text-slate-700 text-xs flex justify-between">
+                    <span>{isBerjamaah ? 'REKAP SHOLAT BERJAMAAH 5 WAKTU' : 'REKAP PRESENSI TAHFIDZ & KEGIATAN'}</span>
+                    <span className="text-slate-400">{getPeriodLabel()}</span>
+                  </div>
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
@@ -1038,7 +1136,7 @@ export default function LaporanTerpadu() {
                     <tbody>
                       {rows.map((s) => (
                         SESSIONS.map((sess, si) => {
-                          const st = s.sessions[sess];
+                          const st = s.sessions[sess] || { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 };
                           const pct = st.total > 0 ? Math.round((st.hadir / st.total) * 100) : 0;
                           return (
                             <tr key={`${s.nis}-${sess}`} className={cn('hover:bg-slate-50/60', si === SESSIONS.length - 1 ? 'border-b-2 border-slate-200' : 'border-b border-slate-50')}>
@@ -1054,13 +1152,7 @@ export default function LaporanTerpadu() {
                                 </>
                               )}
                               <td className="px-2 py-2 text-center border border-slate-200">
-                                <span className={cn(
-                                  'px-2 py-0.5 rounded-full text-[9px] font-bold',
-                                  sess === 'Shubuh' ? 'bg-indigo-50 text-indigo-700' :
-                                  sess === 'Ashar' ? 'bg-orange-50 text-orange-700' :
-                                  sess === 'Maghrib' ? 'bg-purple-50 text-purple-700' :
-                                  'bg-slate-100 text-slate-600'
-                                )}>
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-700">
                                   {sess}
                                 </span>
                               </td>

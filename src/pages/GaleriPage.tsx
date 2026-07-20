@@ -20,11 +20,16 @@ export default function GaleriPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const categories = ['Semua', 'Kegiatan', 'Fasilitas', 'Kajian'];
+  const categories = ['Semua', 'Kegiatan', 'Prestasi & Pencapaian', 'Kajian'];
 
   const filteredItems = activeTab === 'Semua'
     ? items
-    : items.filter((item) => item.category === activeTab);
+    : items.filter((item) => {
+        if (activeTab === 'Prestasi & Pencapaian' || activeTab === 'Prestasi' || activeTab === 'Pencapaian') {
+          return item.category === 'Prestasi & Pencapaian' || item.category === 'Prestasi' || item.category === 'Pencapaian' || item.category === 'Fasilitas';
+        }
+        return item.category === activeTab;
+      });
 
   return (
     <div className="min-h-screen bg-mesh text-slate-800 font-sans">
@@ -39,7 +44,7 @@ export default function GaleriPage() {
               <span>Dokumentasi Pesantren</span>
             </div>
             <h1 className="text-5xl md:text-6xl font-display font-black text-pesantren-dark mb-6 tracking-tight">Galeri Foto</h1>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto font-medium">Melihat lebih dekat kegiatan harian, lingkungan, dan fasilitas Pondok Pesantren Roudlotul 'Ulum.</p>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto font-medium">Melihat lebih dekat kegiatan harian, prestasi, dan pencapaian Pondok Pesantren Roudlotul 'Ulum.</p>
           </div>
 
           {/* Filter Tabs */}
