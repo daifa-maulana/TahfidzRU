@@ -26,8 +26,8 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 
 export default function UangJajanManagement() {
-  const { profile } = useAuth();
-  const isPengurus = profile?.role === 'pengurus';
+  const { role } = useAuth();
+  const isPengurus = role === 'pengurus';
   const { toast, showToast } = useToast();
 
   const [santri, setSantri] = useState<any[]>([]);

@@ -16,8 +16,8 @@ import {
 import { CAMPUS_ABSENSI_SESSION_LABEL } from '../../constants/campus';
 
 export default function AbsensiManagement() {
-  const { profile } = useAuth();
-  const isPengurus = profile?.role === 'pengurus';
+  const { role } = useAuth();
+  const isPengurus = role === 'pengurus';
 
   const [santri, setSantri] = useState<any[]>([]);
   const [absensi, setAbsensi] = useState<Record<string, string>>({});
