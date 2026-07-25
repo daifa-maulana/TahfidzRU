@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { BookOpen, UserCircle, Plus, ChevronDown, CheckCircle2, History, Edit2, Trash2, Loader2, Info, Users } from 'lucide-react';
+import { BookOpen, UserCircle, Plus, ChevronDown, CheckCircle2, History, Edit2, Trash2, Loader2, Info, Users, Search } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -39,6 +39,23 @@ export default function TahfidzManagement() {
   const { toast, showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<any>(null);
+
+  // Searchable Dropdown state
+  const [dropdownSearch, setDropdownSearch] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     session: '',
@@ -233,20 +250,76 @@ export default function TahfidzManagement() {
               </div>
               {formData.session ? (
                 <>
-                  <div>
+                  {/* Searchable Santri Selection */}
+                  <div className="relative" ref={dropdownRef}>
                     <label className="form-label">Pilih Santri</label>
-                    <div className="relative">
-                      <select className="input-field appearance-none pr-9 cursor-pointer" value={selectedSantri}
-                        onChange={(e) => setSelectedSantri(e.target.value)}>
-                        <option value="">-- Pilih Santri --</option>
-                        {santri.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {(s.name || 'Santri tanpa nama')} ({s.nis || '-'}) — Putra
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <div 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="input-field flex items-center justify-between cursor-pointer bg-white"
+                    >
+                      <span className={selectedSantri ? 'text-slate-800 font-semibold text-xs' : 'text-slate-400 text-xs'}>
+                        {selectedSantri 
+                          ? (santri.find(s => s.id === selectedSantri)?.name || 'Santri Terpilih') 
+                          : '-- Pilih Santri --'}
+                      </span>
+                      <ChevronDown size={14} className={`text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     </div>
+
+                    {isDropdownOpen && (
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-60 animate-slide-up">
+                        {/* Search box */}
+                        <div className="p-2 border-b border-slate-100 bg-slate-50">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Cari nama atau NIS..."
+                              className="w-full text-xs bg-white border border-slate-200 rounded-xl py-2 pl-8 pr-3 focus:outline-none focus:border-[#1e3a5f]"
+                              value={dropdownSearch}
+                              onChange={(e) => setDropdownSearch(e.target.value)}
+                              onClick={(e) => e.stopPropagation()} // Prevent closing dropdown
+                            />
+                            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          </div>
+                        </div>
+
+                        {/* Options list */}
+                        <div className="overflow-y-auto max-h-48 custom-scrollbar text-xs">
+                          {(() => {
+                            const filtered = santri.filter(s => 
+                              s.name.toLowerCase().includes(dropdownSearch.toLowerCase()) || 
+                              (s.nis && s.nis.toLowerCase().includes(dropdownSearch.toLowerCase()))
+                            );
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="p-3 text-center text-slate-400">
+                                  Santri tidak ditemukan
+                                </div>
+                              );
+                            }
+
+                            return filtered.map(s => (
+                              <div
+                                key={s.id}
+                                onClick={() => {
+                                  setSelectedSantri(s.id);
+                                  setIsDropdownOpen(false);
+                                  setDropdownSearch('');
+                                }}
+                                className={`p-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-0 ${
+                                  selectedSantri === s.id ? 'bg-blue-50/50 font-bold text-[#1e3a5f]' : 'text-slate-700'
+                                }`}
+                              >
+                                <div>
+                                  <p className="font-semibold">{s.name}</p>
+                                  <p className="text-[10px] text-slate-400">NIS: {s.nis || '-'}</p>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {selectedSantri ? (

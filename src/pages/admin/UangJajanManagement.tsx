@@ -56,6 +56,23 @@ export default function UangJajanManagement() {
   const [formDescription, setFormDescription] = useState('');
   const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
+  // Searchable Dropdown state
+  const [dropdownSearch, setDropdownSearch] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -193,6 +210,8 @@ export default function UangJajanManagement() {
     setFormAmount('');
     setFormDescription('');
     setFormDate(format(new Date(), 'yyyy-MM-dd'));
+    setDropdownSearch('');
+    setIsDropdownOpen(false);
   };
 
   // Calculations
@@ -658,20 +677,79 @@ export default function UangJajanManagement() {
             </div>
             
             <form onSubmit={handleCreateTransaction} className="p-6 space-y-4">
-              {/* Santri Selection */}
-              <div>
+              {/* Searchable Santri Selection */}
+              <div className="relative" ref={dropdownRef}>
                 <label className="form-label">Pilih Santri</label>
-                <select
-                  required
-                  className="input-field"
-                  value={formSantriId}
-                  onChange={(e) => setFormSantriId(e.target.value)}
+                <div 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="input-field flex items-center justify-between cursor-pointer bg-white"
                 >
-                  <option value="">-- Pilih Santri --</option>
-                  {santri.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.class_name ? `Kelas ${s.class_name}` : 'Tanpa Kelas'})</option>
-                  ))}
-                </select>
+                  <span className={formSantriId ? 'text-slate-800 font-medium text-xs' : 'text-slate-400 text-xs'}>
+                    {formSantriId 
+                      ? (santri.find(s => s.id === formSantriId)?.name || 'Santri Terpilih') 
+                      : '-- Pilih Santri --'}
+                  </span>
+                  <ChevronRight size={14} className={`text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-90' : ''}`} />
+                </div>
+
+                {isDropdownOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-60 animate-fade-in">
+                    {/* Search box */}
+                    <div className="p-2 border-b border-slate-100 bg-slate-50">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Cari nama atau NIS santri..."
+                          className="w-full text-xs bg-white border border-slate-200 rounded-xl py-2 pl-8 pr-3 focus:outline-none focus:border-[#1e3a5f]"
+                          value={dropdownSearch}
+                          onChange={(e) => setDropdownSearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()} // Prevent closing dropdown
+                        />
+                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+                    </div>
+
+                    {/* Options list */}
+                    <div className="overflow-y-auto max-h-44 custom-scrollbar text-xs">
+                      {(() => {
+                        const filtered = santri.filter(s => 
+                          s.name.toLowerCase().includes(dropdownSearch.toLowerCase()) || 
+                          (s.nis && s.nis.toLowerCase().includes(dropdownSearch.toLowerCase()))
+                        );
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="p-3 text-center text-slate-400">
+                              Santri tidak ditemukan
+                            </div>
+                          );
+                        }
+
+                        return filtered.map(s => (
+                          <div
+                            key={s.id}
+                            onClick={() => {
+                              setFormSantriId(s.id);
+                              setIsDropdownOpen(false);
+                              setDropdownSearch('');
+                            }}
+                            className={`p-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-0 ${
+                              formSantriId === s.id ? 'bg-blue-50/50 font-bold text-[#1e3a5f]' : 'text-slate-700'
+                            }`}
+                          >
+                            <div>
+                              <p className="font-semibold">{s.name}</p>
+                              <p className="text-[10px] text-slate-400">NIS: {s.nis || '-'}</p>
+                            </div>
+                            <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                              {s.class_name ? `Kelas ${s.class_name}` : 'Tanpa Kelas'}
+                            </span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Type Selection */}
