@@ -11,6 +11,7 @@ import { dataService } from './services/data';
 import { AdminLayout } from './layouts/AdminLayout';
 import { PengajarLayout } from './layouts/PengajarLayout';
 import { WaliLayout } from './layouts/WaliLayout';
+import { PengurusLayout } from './layouts/PengurusLayout';
 
 // Direct Pages
 import Home from './pages/Home';
@@ -34,6 +35,10 @@ import AgendaManagement from './pages/admin/AgendaManagement';
 import KontenManagement from './pages/admin/KontenManagement';
 import UserApproval from './pages/admin/UserApproval';
 import TahfidzDiploma from './pages/admin/TahfidzDiploma';
+import UangJajanManagement from './pages/admin/UangJajanManagement';
+
+// Pengurus Pages
+import PengurusDashboard from './pages/pengurus/PengurusDashboard';
 
 // Pengajar Pages
 import PengajarDashboard from './pages/pengajar/PengajarDashboard';
@@ -49,6 +54,7 @@ import AgendaWali from './pages/wali/AgendaWali';
 import HafalanWali from './pages/wali/HafalanWali';
 import AbsensiWali from './pages/wali/AbsensiWali';
 import IjazahWali from './pages/wali/IjazahWali';
+import UangJajanWali from './pages/wali/UangJajanWali';
 
 const SetupRequired = () => (
   <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 text-slate-900">
@@ -147,8 +153,18 @@ function AppContent() {
             <Route path="nilai" element={<NilaiManagement />} />
             <Route path="agenda" element={<AgendaManagement />} />
             <Route path="konten" element={<KontenManagement />} />
+            <Route path="uang-jajan" element={<UangJajanManagement />} />
             <Route path="ijazah/:id" element={<TahfidzDiploma />} />
             <Route path="approval" element={<UserApproval />} />
+          </Route>
+        </Route>
+
+        {/* Pengurus Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['pengurus']} />}>
+          <Route path="/pengurus" element={<PengurusLayout />}>
+            <Route index element={<PengurusDashboard />} />
+            <Route path="absensi" element={<AbsensiManagement />} />
+            <Route path="uang-jajan" element={<UangJajanManagement />} />
           </Route>
         </Route>
 
@@ -170,6 +186,7 @@ function AppContent() {
             <Route path="hafalan" element={<HafalanWali />} />
             <Route path="absensi" element={<AbsensiWali />} />
             <Route path="agenda" element={<AgendaWali />} />
+            <Route path="uang-jajan" element={<UangJajanWali />} />
             <Route path="profil" element={<ProfilSantri />} />
             <Route path="ijazah" element={<IjazahWali />} />
           </Route>

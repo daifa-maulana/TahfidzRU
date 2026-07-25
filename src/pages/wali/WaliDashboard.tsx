@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { dataService } from '../../services/data';
-import { Info, BookOpen, Clock, CheckCircle2, Award, ChevronDown, UserCircle, Calendar, MapPin } from 'lucide-react';
+import { Info, BookOpen, Clock, CheckCircle2, Award, ChevronDown, UserCircle, Calendar, MapPin, Wallet } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { formatRupiah } from '../../utils/format';
 
 export default function WaliDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -16,6 +17,7 @@ export default function WaliDashboard() {
   const [selectedSantri, setSelectedSantri] = useState<any>(null);
   const [tahfidzStats, setTahfidzStats] = useState<any[]>([]);
   const [upcomingAgenda, setUpcomingAgenda] = useState<any[]>([]);
+  const [saldo, setSaldo] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,10 +34,25 @@ export default function WaliDashboard() {
       if (data && data.length > 0) {
         setSelectedSantri(data[0]);
         fetchProgres(data[0].id);
+        fetchSaldo(data[0].id);
       }
       fetchUpcomingAgenda();
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
+  };
+
+  const fetchSaldo = async (id: string) => {
+    try {
+      const transactions = await dataService.getTransactions(id);
+      const activeTransactions = transactions.filter((t: any) => t.status === 'Paid');
+      const totalMasuk = activeTransactions
+        .filter((t: any) => t.type === 'Uang Masuk')
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const totalKeluar = activeTransactions
+        .filter((t: any) => t.type === 'Uang Keluar')
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      setSaldo(totalMasuk - totalKeluar);
+    } catch (error) { console.error(error); }
   };
 
   const fetchProgres = async (id: string) => {
@@ -69,7 +86,7 @@ export default function WaliDashboard() {
             <select className="input-field appearance-none pr-9 min-w-[200px]"
               onChange={(e) => {
                 const s = santri.find(x => x.id === e.target.value);
-                setSelectedSantri(s); fetchProgres(s.id);
+                setSelectedSantri(s); fetchProgres(s.id); fetchSaldo(s.id);
               }}>
               {santri.map(s => (
                 <option key={s.id} value={s.id}>
@@ -127,7 +144,7 @@ export default function WaliDashboard() {
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="card p-5 flex items-start gap-4">
               <div className="w-12 h-12 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Clock size={20} />
@@ -148,6 +165,18 @@ export default function WaliDashboard() {
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Setoran Baru</p>
                 <h3 className="text-lg font-bold text-slate-800 line-clamp-1">
                   {tahfidzStats.find(x => x.type === 'Setoran Baru')?.surah || 'Belum ada'}
+                </h3>
+              </div>
+            </div>
+
+            <div className="card p-5 flex items-start gap-4 cursor-pointer hover:shadow-md transition-all" onClick={() => navigate('/wali/uang-jajan')}>
+              <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Wallet size={20} />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Saldo Uang Jajan</p>
+                <h3 className="text-lg font-bold text-slate-800">
+                  {formatRupiah(saldo)}
                 </h3>
               </div>
             </div>

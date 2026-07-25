@@ -164,3 +164,51 @@ CREATE POLICY "konten_admin_delete" ON storage.objects
 -- SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'tahfidz';
 -- SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'absensi';
 -- SELECT constraint_name, check_clause FROM information_schema.check_constraints WHERE constraint_name LIKE 'tahfidz%';
+
+-- ============================================================
+-- MIGRATION: Fitur Uang Jajan & Peran Baru 'Pengurus'
+-- ============================================================
+
+-- 1. Perbarui check constraint pada tabel profiles untuk mendukung role 'pengurus'
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check 
+  CHECK (role IN ('admin', 'pengurus', 'pengajar', 'wali'));
+
+-- 2. Kebijakan RLS untuk tabel santri (Pengurus bisa SELECT data santri)
+DROP POLICY IF EXISTS "santri_pengurus_select" ON public.santri;
+CREATE POLICY "santri_pengurus_select" ON public.santri FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'pengurus')
+);
+
+-- 3. Kebijakan RLS untuk tabel absensi (Pengurus bisa mengelola absensi)
+DROP POLICY IF EXISTS "absensi_pengurus_all" ON public.absensi;
+CREATE POLICY "absensi_pengurus_all" ON public.absensi FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'pengurus')
+);
+
+-- 4. Kebijakan RLS untuk tabel transactions (Pengurus bisa mengelola transaksi uang jajan)
+DROP POLICY IF EXISTS "transactions_pengurus_all" ON public.transactions;
+CREATE POLICY "transactions_pengurus_all" ON public.transactions FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'pengurus')
+);
+
+-- 5. Kebijakan RLS untuk Wali Santri mengajukan & membatalkan top-up pending
+DROP POLICY IF EXISTS "transactions_insert_wali" ON public.transactions;
+CREATE POLICY "transactions_insert_wali" ON public.transactions FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.santri WHERE santri.id = transactions.santri_id AND santri.wali_id = auth.uid())
+  AND status = 'Pending'
+  AND type = 'Uang Masuk'
+);
+
+DROP POLICY IF EXISTS "transactions_delete_wali" ON public.transactions;
+CREATE POLICY "transactions_delete_wali" ON public.transactions FOR DELETE USING (
+  EXISTS (SELECT 1 FROM public.santri WHERE santri.id = transactions.santri_id AND santri.wali_id = auth.uid())
+  AND status = 'Pending'
+);
+
+-- 6. Perbarui check constraint pada tabel transactions agar mendukung Uang Masuk & Uang Keluar (selain SPP)
+ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_type_check;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_type_check 
+  CHECK (type IN ('SPP', 'Uang Masuk', 'Uang Keluar'));
+
+

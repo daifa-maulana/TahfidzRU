@@ -473,7 +473,7 @@ export default function TahfidzManagement() {
                           : `Halaman ${log.from_ayat}–${log.to_ayat}`}
                       </p>
                     </div>
-                    <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 shrink-0">
                       <button onClick={() => handleOpenEdit(log)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-[#1e3a5f] hover:bg-blue-50 transition-colors">
                         <Edit2 size={13} />

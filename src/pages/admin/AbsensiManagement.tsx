@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   ABSENSI_SESSIONS,
   SHOLAT_BERJAMAAH_SESSIONS,
@@ -15,6 +16,9 @@ import {
 import { CAMPUS_ABSENSI_SESSION_LABEL } from '../../constants/campus';
 
 export default function AbsensiManagement() {
+  const { profile } = useAuth();
+  const isPengurus = profile?.role === 'pengurus';
+
   const [santri, setSantri] = useState<any[]>([]);
   const [absensi, setAbsensi] = useState<Record<string, string>>({});
   const [savedAbsensi, setSavedAbsensi] = useState<Record<string, string>>({});
@@ -28,6 +32,12 @@ export default function AbsensiManagement() {
   const [selectedTahfidzSession, setSelectedTahfidzSession] = useState<AbsensiSession>('Shubuh');
 
   const [selectedClass, setSelectedClass] = useState('All');
+
+  useEffect(() => {
+    if (isPengurus) {
+      setAbsensiType('berjamaah');
+    }
+  }, [isPengurus]);
   const [searchTerm, setSearchTerm] = useState('');
   const [recentDates, setRecentDates] = useState<any[]>([]);
   const { toast, showToast } = useToast();
@@ -155,33 +165,35 @@ export default function AbsensiManagement() {
       </div>
 
       {/* Mode Switcher: Sholat Berjamaah vs Tahfidz & Kegiatan */}
-      <div className="flex bg-slate-200/60 p-1.5 rounded-2xl max-w-md gap-1">
-        <button
-          type="button"
-          onClick={() => { setAbsensiType('berjamaah'); }}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
-            absensiType === 'berjamaah'
-              ? 'bg-[#1e3a5f] text-white shadow-md'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-          )}
-        >
-          <span>🕌</span> Sholat Berjamaah
-        </button>
+      {!isPengurus && (
+        <div className="flex bg-slate-200/60 p-1.5 rounded-2xl max-w-md gap-1">
+          <button
+            type="button"
+            onClick={() => { setAbsensiType('berjamaah'); }}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
+              absensiType === 'berjamaah'
+                ? 'bg-[#1e3a5f] text-white shadow-md'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+            )}
+          >
+            <span>🕌</span> Sholat Berjamaah
+          </button>
 
-        <button
-          type="button"
-          onClick={() => { setAbsensiType('tahfidz'); }}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
-            absensiType === 'tahfidz'
-              ? 'bg-[#1e3a5f] text-white shadow-md'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-          )}
-        >
-          <span>📖</span> Tahfidz & Kegiatan
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => { setAbsensiType('tahfidz'); }}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200',
+              absensiType === 'tahfidz'
+                ? 'bg-[#1e3a5f] text-white shadow-md'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+            )}
+          >
+            <span>📖</span> Tahfidz & Kegiatan
+          </button>
+        </div>
+      )}
 
       {/* Session selector */}
       {absensiType === 'berjamaah' ? (

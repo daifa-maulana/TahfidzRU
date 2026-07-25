@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
-import { Users, BookOpen, Clock, ChevronRight, Calendar, TrendingUp } from 'lucide-react';
+import { Users, BookOpen, Clock, ChevronRight, Calendar, TrendingUp, Wallet } from 'lucide-react';
 import { motion } from 'motion/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -52,12 +52,20 @@ export default function AdminDashboard() {
     },
     {
       label: 'Setoran Hari Ini',
-       value: stats?.recentTahfidz?.length || 0,
-       icon: BookOpen,
-       color: 'bg-emerald-50 text-emerald-600',
-       iconBg: 'bg-emerald-100',
-       trend: 'Tahfidz masuk'
-     },
+      value: stats?.recentTahfidz?.length || 0,
+      icon: BookOpen,
+      color: 'bg-emerald-50 text-emerald-600',
+      iconBg: 'bg-emerald-100',
+      trend: 'Tahfidz masuk'
+    },
+    {
+      label: 'Persetujuan Top Up',
+      value: stats?.pendingTransactions || 0,
+      icon: Wallet,
+      color: 'bg-amber-50 text-amber-600',
+      iconBg: 'bg-amber-100',
+      trend: 'Perlu verifikasi'
+    }
   ];
 
   if (loading) {

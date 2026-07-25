@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/data';
 import { supabase } from '../../lib/supabase';
-import { FileText, Download, Printer, Loader2, Users, BookOpen, GraduationCap, ClipboardCheck, BarChart3 } from 'lucide-react';
+import { FileText, Download, Printer, Loader2, Users, BookOpen, GraduationCap, ClipboardCheck, BarChart3, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { cn } from '../../utils/cn';
+import { formatRupiah } from '../../utils/format';
 import {
   CAMPUS_ABSENSI_SESSIONS,
 
@@ -17,7 +18,7 @@ import {
 } from '../../constants/campus';
 
 export default function LaporanTerpadu() {
-  const [reportType, setReportType] = useState<'keseluruhan' | 'satu-santri' | 'rekap-berjamaah' | 'rekap-presensi' | 'rekap-setoran'>('keseluruhan');
+  const [reportType, setReportType] = useState<'keseluruhan' | 'satu-santri' | 'rekap-berjamaah' | 'rekap-presensi' | 'rekap-setoran' | 'rekap-uang-jajan'>('keseluruhan');
   const [selectedSantriId, setSelectedSantriId] = useState<string>('');
   
   const [recapPeriod, setRecapPeriod] = useState<'month' | 'year'>('month');
@@ -30,22 +31,25 @@ export default function LaporanTerpadu() {
   const [absensiLogs, setAbsensiLogs] = useState<any[]>([]);
   const [tahfidzLogs, setTahfidzLogs] = useState<any[]>([]);
   const [gradesList, setGradesList] = useState<any[]>([]);
+  const [transactionsLogs, setTransactionsLogs] = useState<any[]>([]);
   const { toast, showToast } = useToast();
 
   const fetchReportData = async () => {
     setLoading(true);
     try {
-      const [santris, absensi, tahfidz, grades] = await Promise.all([
+      const [santris, absensi, tahfidz, grades, txData] = await Promise.all([
         dataService.getSantriList(),
         dataService.getAbsensiRecap(recapPeriod, recapYear, recapPeriod === 'month' ? recapMonth : undefined),
         dataService.getTahfidzRecap(recapPeriod, recapYear, recapPeriod === 'month' ? recapMonth : undefined),
-        supabase.from('nilai').select('*, kurikulum(subject)')
+        supabase.from('nilai').select('*, kurikulum(subject)'),
+        supabase.from('transactions').select('*, santri(name, nis, class_name)').order('date', { ascending: false })
       ]);
 
       setSantriList(santris || []);
       setAbsensiLogs(absensi || []);
       setTahfidzLogs(tahfidz || []);
       setGradesList(grades.data || []);
+      setTransactionsLogs(txData.data || []);
     } catch (err) {
       showToast('Gagal memuat data laporan terpadu. Periksa koneksi.', 'error');
     } finally {
@@ -699,6 +703,18 @@ export default function LaporanTerpadu() {
           <BookOpen size={16} />
           Rekap Setoran
         </button>
+        <button
+          onClick={() => setReportType('rekap-uang-jajan')}
+          className={cn(
+            "py-2.5 px-5 text-sm font-semibold border-b-2 -mb-px transition-colors flex items-center gap-2 cursor-pointer",
+            reportType === 'rekap-uang-jajan'
+              ? "border-[#1e3a5f] text-[#1e3a5f] font-bold"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <Wallet size={16} />
+          Rekap Uang Jajan
+        </button>
       </div>
 
       {/* Filter Control - Hidden in Print */}
@@ -771,14 +787,16 @@ export default function LaporanTerpadu() {
           <div className="text-center pb-6 border-b-2 border-slate-900/60 mb-6">
             <h2 className="text-2xl font-display font-black text-slate-800 tracking-tight">
               {reportType === 'keseluruhan' 
-                ? 'LAPORAN PERKEMBANGAN SANTRI TERPADU' 
+                ? 'Laporan Perkembangan Santri Terpadu'
                 : reportType === 'satu-santri' 
-                ? 'RAPOR HASIL BELAJAR SANTRI INDIVIDU' 
+                ? `Rapor Perkembangan Santri - ${activeStudent?.name || ''}`
                 : reportType === 'rekap-berjamaah'
-                ? 'REKAPITULASI PRESENSI SHOLAT BERJAMAAH 5 WAKTU'
-                : reportType === 'rekap-presensi'
-                ? 'REKAPITULASI PRESENSI TAHFIDZ & KEGIATAN'
-                : 'REKAPITULASI SETORAN HAFALAN SANTRI'}
+                ? 'Rekap Kehadiran Sholat Berjamaah'
+                : reportType === 'rekap-presensi' 
+                ? 'Rekap Presensi Kegiatan Tahfidz'
+                : reportType === 'rekap-uang-jajan'
+                ? 'Rekap Keuangan Uang Jajan Santri'
+                : 'Rekap Logs Setoran Hafalan'}
             </h2>
             <h3 className="text-lg font-bold text-[#1e3a5f] uppercase tracking-wider mt-0.5">PONDOK PESANTREN ROUDHLATUL ULUM</h3>
             <p className="text-xs text-slate-500 font-medium mt-1">Parongpong, Bandung Barat, Jawa Barat</p>
@@ -1251,12 +1269,104 @@ export default function LaporanTerpadu() {
                   </tbody>
                 </table>
               </div>
-            ) : (
+            ) : reportType === 'rekap-setoran' ? (
               <div className="text-center py-20 text-slate-400">
                 <BookOpen size={40} className="mx-auto text-slate-200 mb-3" />
                 <p className="text-sm font-semibold">Tidak ada data setoran tahfidz untuk periode ini</p>
               </div>
-            )
+            ) : (() => {
+              // Rekap Uang Jajan calculations
+              let startDate: Date;
+              let endDate: Date;
+
+              if (recapPeriod === 'month') {
+                startDate = new Date(recapYear, recapMonth - 1, 1);
+                endDate = new Date(recapYear, recapMonth, 0, 23, 59, 59, 999);
+              } else {
+                startDate = new Date(recapYear, 0, 1);
+                endDate = new Date(recapYear, 11, 31, 23, 59, 59, 999);
+              }
+
+              const financeData = santriList
+                .filter(s => selectedClass === 'All' || s.class_name === selectedClass)
+                .map(student => {
+                  const studentTx = transactionsLogs.filter(t => t.santri_id === student.id && t.status === 'Paid');
+
+                  // Saldo Awal (before start date)
+                  const priorTx = studentTx.filter(t => new Date(t.date) < startDate);
+                  const priorIn = priorTx.filter(t => t.type === 'Uang Masuk').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                  const priorOut = priorTx.filter(t => t.type === 'Uang Keluar').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                  const saldoAwal = priorIn - priorOut;
+
+                  // Transactions in this period
+                  const periodTx = studentTx.filter(t => {
+                    const tDate = new Date(t.date);
+                    return tDate >= startDate && tDate <= endDate;
+                  });
+                  const masuk = periodTx.filter(t => t.type === 'Uang Masuk').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                  const keluar = periodTx.filter(t => t.type === 'Uang Keluar').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+                  // Saldo Akhir
+                  const saldoAkhir = saldoAwal + masuk - keluar;
+
+                  return {
+                    ...student,
+                    saldoAwal,
+                    masuk,
+                    keluar,
+                    saldoAkhir
+                  };
+                });
+
+              return financeData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse text-left">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase border border-slate-200 text-center">No</th>
+                        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Santri</th>
+                        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase border border-slate-200 text-center">Kelas</th>
+                        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase border border-slate-200 text-right">Saldo Awal</th>
+                        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase border border-slate-200 text-right">Uang Masuk (Deposit)</th>
+                        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase border border-slate-200 text-right">Uang Keluar (Jajan)</th>
+                        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase border border-slate-200 text-right">Saldo Akhir</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-800">
+                      {financeData.map((s, idx) => (
+                        <tr key={s.id || idx} className="hover:bg-slate-50/50">
+                          <td className="px-3 py-2 text-center border border-slate-200 font-medium">{idx + 1}</td>
+                          <td className="px-3 py-2 font-semibold text-slate-800 border border-slate-200">
+                            {s.name}
+                            <span className="text-slate-400 font-mono ml-1.5 text-[10px]">{s.nis}</span>
+                          </td>
+                          <td className="px-3 py-2 text-center border border-slate-200 font-medium text-slate-600">
+                            {s.class_name || '-'}
+                          </td>
+                          <td className="px-3 py-2 text-right border border-slate-200 text-slate-600 font-semibold">
+                            {formatRupiah(s.saldoAwal)}
+                          </td>
+                          <td className="px-3 py-2 text-right border border-slate-200 text-emerald-600 font-semibold">
+                            {s.masuk > 0 ? `+ ${formatRupiah(s.masuk)}` : 'Rp 0'}
+                          </td>
+                          <td className="px-3 py-2 text-right border border-slate-200 text-rose-600 font-semibold">
+                            {s.keluar > 0 ? `- ${formatRupiah(s.keluar)}` : 'Rp 0'}
+                          </td>
+                          <td className="px-3 py-2 text-right border border-slate-200 text-slate-800 font-extrabold">
+                            {formatRupiah(s.saldoAkhir)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-20 text-slate-400">
+                  <Wallet size={40} className="mx-auto text-slate-200 mb-3" />
+                  <p className="text-sm font-semibold">Tidak ada data transaksi uang jajan untuk periode ini</p>
+                </div>
+              );
+            })()
           )}
         </div>
 
@@ -1265,7 +1375,8 @@ export default function LaporanTerpadu() {
           (reportType === 'keseluruhan' && processedData.length > 0) || 
           (reportType === 'satu-santri' && !!selectedSantriId) ||
           (reportType === 'rekap-presensi' && getAbsensiRecapGrouped().length > 0) ||
-          (reportType === 'rekap-setoran' && filteredTahfidzLogs.length > 0)
+          (reportType === 'rekap-setoran' && filteredTahfidzLogs.length > 0) ||
+          (reportType === 'rekap-uang-jajan' && santriList.filter(s => selectedClass === 'All' || s.class_name === selectedClass).length > 0)
         ) && (
           <div className="mt-16 flex justify-end text-slate-800 font-medium text-xs">
             <div className="text-center min-w-[200px]">

@@ -85,6 +85,7 @@ export default function UserApproval() {
 
   const roleOptions = [
     { value: 'admin', label: 'Administrator' },
+    { value: 'pengurus', label: 'Pengurus' },
     { value: 'pengajar', label: 'Pengajar' },
     { value: 'wali', label: 'Wali Santri' },
   ];
