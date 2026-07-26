@@ -10,6 +10,7 @@ import {
   ABSENSI_SESSIONS,
   SHOLAT_BERJAMAAH_SESSIONS,
 } from '../../constants/absensi';
+import { CAMPUS_ABSENSI_SESSIONS } from '../../constants/campus';
 
 const safeDate = (dateStr: string) => {
   try {
@@ -66,7 +67,7 @@ export default function AbsensiWali() {
     if (mode === 'berjamaah') {
       return item.type === 'berjamaah' || (item.type !== 'tahfidz' && ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'].includes(item.session));
     }
-    return item.type === 'tahfidz' || (item.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(item.session));
+    return item.type === 'tahfidz' || (item.type !== 'berjamaah' && (CAMPUS_ABSENSI_SESSIONS as readonly string[]).includes(item.session));
   });
 
   const groupedByDate = filteredAbsensi.reduce<Record<string, typeof absensi>>((acc, item) => {

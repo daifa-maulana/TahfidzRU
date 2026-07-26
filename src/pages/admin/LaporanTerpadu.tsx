@@ -91,7 +91,7 @@ export default function LaporanTerpadu() {
           }
         }
         
-        const isTahfidz = a.type === 'tahfidz' || (a.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(a.session));
+        const isTahfidz = a.type === 'tahfidz' || (a.type !== 'berjamaah' && (CAMPUS_ABSENSI_SESSIONS as readonly string[]).includes(a.session));
         if (isTahfidz) {
           const session = a.session as CampusAbsensiSession;
           if (attendanceSummary[session]) {
@@ -144,7 +144,7 @@ export default function LaporanTerpadu() {
       if (targetType === 'berjamaah') {
         return r.type === 'berjamaah' || (r.type !== 'tahfidz' && ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'].includes(r.session));
       }
-      return r.type === 'tahfidz' || (r.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(r.session));
+      return r.type === 'tahfidz' || (r.type !== 'berjamaah' && (CAMPUS_ABSENSI_SESSIONS as readonly string[]).includes(r.session));
     });
 
     logsToUse.forEach((r: any) => {
@@ -483,7 +483,7 @@ export default function LaporanTerpadu() {
     let rowsHtml = '';
     const SESSIONS = type === 'berjamaah'
       ? (['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'] as const)
-      : (['Shubuh', 'Ashar', 'Maghrib'] as const);
+      : ([...CAMPUS_ABSENSI_SESSIONS] as string[]);
     const title = type === 'berjamaah' ? 'REKAP PRESENSI SHOLAT BERJAMAAH 5 WAKTU' : 'REKAP PRESENSI KEGIATAN TAHFIDZ';
     rows.forEach((s, idx) => {
       SESSIONS.forEach((sess, si) => {
@@ -1004,8 +1004,8 @@ export default function LaporanTerpadu() {
                         );
                       })}
                       {(() => {
-                        const totHadir = CAMPUS_ABSENSI_SESSIONS.reduce((sum, key) => sum + activeStudent.attendanceSummary[key].hadir, 0);
-                        const totSess = CAMPUS_ABSENSI_SESSIONS.reduce((sum, key) => sum + activeStudent.attendanceSummary[key].total, 0);
+                        const totHadir = (CAMPUS_ABSENSI_SESSIONS as readonly string[]).reduce((sum: number, key: string) => sum + ((activeStudent.attendanceSummary as any)[key]?.hadir ?? 0), 0);
+                        const totSess = (CAMPUS_ABSENSI_SESSIONS as readonly string[]).reduce((sum: number, key: string) => sum + ((activeStudent.attendanceSummary as any)[key]?.total ?? 0), 0);
                         const percent = totSess > 0 ? Math.round((totHadir / totSess) * 100) : 0;
                         return (
                           <tr className="bg-slate-50 font-bold">
@@ -1130,7 +1130,7 @@ export default function LaporanTerpadu() {
               const rows = getAbsensiRecapGrouped(isBerjamaah ? 'berjamaah' : 'tahfidz');
               const SESSIONS = isBerjamaah
                 ? (['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'] as const)
-                : (['Shubuh', 'Ashar', 'Maghrib'] as const);
+                : ([...CAMPUS_ABSENSI_SESSIONS] as string[]);
               return rows.length > 0 ? (
                 <div className="overflow-x-auto">
                   <div className="p-3 bg-slate-50 border-b border-slate-200 font-bold text-slate-700 text-xs flex justify-between">

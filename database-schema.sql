@@ -106,6 +106,10 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE TABLE IF NOT EXISTS ijazah (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     santri_id UUID REFERENCES santri(id) ON DELETE CASCADE,
+    school_name TEXT DEFAULT 'Pondok Pesantren Tahfidz',
+    school_subtitle TEXT DEFAULT 'Roudhlatul Ulum',
+    certificate_type TEXT DEFAULT 'Ijazah Kehormatan',
+    intro_text TEXT DEFAULT 'Dengan penuh rasa syukur dan bangga, kami menganugerahkan ijazah ini kepada:',
     title TEXT NOT NULL,
     pencapaian TEXT,
     predikat TEXT DEFAULT 'Mumtaz',

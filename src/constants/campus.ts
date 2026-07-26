@@ -6,10 +6,10 @@ export const CAMPUS_GENDER_LABEL = 'Laki-laki (Putra)';
 export const CAMPUS_FULL_NAME = "Pondok Pesantren Roudlotul 'Ulum Tahfidz Putra";
 export const CAMPUS_SUBTITLE = 'Tahfidz Putra · Parongpong KBB';
 
-/** Sesi presensi: putra = Shubuh/Ashar/Maghrib, putri = Shubuh/Ashar/Isya */
+/** Sesi presensi: putra = Shubuh/Ashar/Maghrib/Isya, putri = Shubuh/Ashar/Isya */
 export const CAMPUS_ABSENSI_SESSIONS =
   CAMPUS_TYPE === 'putra'
-    ? (['Shubuh', 'Ashar', 'Maghrib'] as const)
+    ? (['Shubuh', 'Ashar', 'Maghrib', 'Isya'] as const)
     : (['Shubuh', 'Ashar', 'Isya'] as const);
 
 export type CampusAbsensiSession = (typeof CAMPUS_ABSENSI_SESSIONS)[number];

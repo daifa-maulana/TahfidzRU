@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { dataService } from '../../services/data';
-import { Info, BookOpen, Clock, CheckCircle2, Award, ChevronDown, UserCircle, Calendar, MapPin, Wallet } from 'lucide-react';
+import { Info, BookOpen, Clock, CheckCircle2, Award, Star, ChevronDown, UserCircle, Calendar, MapPin, Wallet } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -19,6 +19,7 @@ export default function WaliDashboard() {
   const [upcomingAgenda, setUpcomingAgenda] = useState<any[]>([]);
   const [saldo, setSaldo] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [ijazah, setIjazah] = useState<any>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -35,10 +36,26 @@ export default function WaliDashboard() {
         setSelectedSantri(data[0]);
         fetchProgres(data[0].id);
         fetchSaldo(data[0].id);
+        fetchIjazahStatus(data[0].id);
       }
       fetchUpcomingAgenda();
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
+  };
+
+  const fetchIjazahStatus = async (santriId: string) => {
+    try {
+      const { data } = await supabase
+        .from('ijazah')
+        .select('*')
+        .eq('santri_id', santriId)
+        .eq('is_published', true)
+        .maybeSingle();
+      setIjazah(data || null);
+    } catch (error) {
+      console.error('Error fetching ijazah:', error);
+      setIjazah(null);
+    }
   };
 
   const fetchSaldo = async (id: string) => {
@@ -86,7 +103,12 @@ export default function WaliDashboard() {
             <select className="input-field appearance-none pr-9 min-w-[200px]"
               onChange={(e) => {
                 const s = santri.find(x => x.id === e.target.value);
-                setSelectedSantri(s); fetchProgres(s.id); fetchSaldo(s.id);
+                if (s) {
+                  setSelectedSantri(s);
+                  fetchProgres(s.id);
+                  fetchSaldo(s.id);
+                  fetchIjazahStatus(s.id);
+                }
               }}>
               {santri.map(s => (
                 <option key={s.id} value={s.id}>
@@ -111,6 +133,140 @@ export default function WaliDashboard() {
         </div>
       ) : (
         <>
+          {/* Celebratory Ijazah Banner + Inline Preview */}
+          {ijazah && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              {/* Banner */}
+              <div className="p-5 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 border-2 border-amber-400 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center flex-shrink-0 animate-bounce">
+                    <Award size={24} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-slate-800">Ijazah Ananda Telah Diterbitkan! 🎉</h3>
+                    <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Selamat! Pondok Pesantren telah menerbitkan Ijazah Hafalan Al-Qur'an untuk ananda <strong>{selectedSantri?.name}</strong>.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/wali/ijazah')}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-colors whitespace-nowrap shadow-sm"
+                >
+                  Lihat & Cetak
+                </button>
+              </div>
+
+              {/* Inline Ijazah Preview Card */}
+              <div className="card overflow-hidden border-2 border-amber-100">
+                <div className="px-5 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award size={16} className="text-amber-500" />
+                    <span className="text-sm font-bold text-slate-700">Ijazah Ananda</span>
+                  </div>
+                  <button
+                    onClick={() => navigate('/wali/ijazah')}
+                    className="text-xs text-amber-600 font-bold hover:text-amber-700 transition-colors"
+                  >
+                    Cetak Ijazah →
+                  </button>
+                </div>
+
+                {/* Mini Ijazah — A4 landscape preview scaled to card */}
+                <div className="p-4 bg-amber-50/30">
+                  <div
+                    className="bg-white border-[8px] border-double border-slate-800 relative overflow-hidden shadow-lg mx-auto"
+                    style={{ aspectRatio: '297/210', maxWidth: '700px' }}
+                  >
+                    {/* Inner layout */}
+                    <div className="absolute inset-0 flex flex-col justify-between p-[5%]">
+
+                      {/* Header */}
+                      <div className="text-center">
+                        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-[#1e3a5f] text-white rounded-lg flex items-center justify-center mx-auto mb-1 rotate-3 shadow">
+                          <BookOpen size={14} className="sm:hidden" />
+                          <BookOpen size={18} className="hidden sm:block" />
+                        </div>
+                        <p className="text-[6px] sm:text-[8px] font-bold text-slate-800 uppercase tracking-widest mb-0.5">
+                          {ijazah.school_name || 'Pondok Pesantren Tahfidz'}
+                        </p>
+                        <p className="text-[10px] sm:text-sm font-black text-[#1e3a5f] uppercase tracking-tight mb-1">
+                          {ijazah.school_subtitle || 'Roudhlatul Ulum'}
+                        </p>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="h-px w-8 bg-slate-300" />
+                          <span className="text-[5px] sm:text-[7px] font-bold text-slate-400 uppercase tracking-wider">
+                            {ijazah.certificate_type || 'Ijazah Kehormatan'}
+                          </span>
+                          <div className="h-px w-8 bg-slate-300" />
+                        </div>
+                      </div>
+
+                      {/* Body */}
+                      <div className="text-center">
+                        <p className="text-[5px] sm:text-[7px] text-slate-500 mb-1">
+                          {ijazah.intro_text || 'Dengan penuh rasa syukur dan bangga, kami menganugerahkan ijazah ini kepada:'}
+                        </p>
+                        <div className="border-t border-b border-slate-100 py-1 mb-1">
+                          <p className="text-[9px] sm:text-sm font-bold text-slate-900 uppercase">
+                            {selectedSantri?.name}
+                          </p>
+                          <p className="text-[5px] sm:text-[7px] text-slate-400 font-mono">NIS: {selectedSantri?.nis}</p>
+                        </div>
+                        <p className="text-[5px] sm:text-[7px] font-bold text-slate-300 uppercase tracking-widest">Program</p>
+                        <p className="text-[7px] sm:text-[10px] font-bold text-[#1e3a5f]">{ijazah.title}</p>
+                        <p className="text-[5px] sm:text-[7px] text-slate-500 italic mt-0.5 line-clamp-2 max-w-[60%] mx-auto">
+                          &ldquo;{ijazah.pencapaian}&rdquo;
+                        </p>
+                        <div className="flex justify-center gap-3 mt-1">
+                          <div className="flex flex-col items-center">
+                            <Star size={8} className="text-amber-400" fill="currentColor" />
+                            <span className="text-[4px] sm:text-[6px] font-bold text-slate-400 uppercase">{ijazah.predikat}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <Award size={10} className="text-[#1e3a5f]" />
+                            <span className="text-[4px] sm:text-[5px] font-bold text-slate-700 uppercase">Tersertifikasi</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <Star size={8} className="text-amber-400" fill="currentColor" />
+                            <span className="text-[4px] sm:text-[6px] font-bold text-slate-400 uppercase">{ijazah.predikat}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer signatures */}
+                      <div className="flex justify-between px-[5%]">
+                        <div className="text-center w-[35%]">
+                          <p className="text-[5px] sm:text-[6px] text-slate-400 mb-3">{ijazah.left_sign_title}</p>
+                          <div className="border-t border-slate-700 pt-0.5">
+                            <p className="text-[5px] sm:text-[7px] font-bold text-slate-800 truncate">{ijazah.left_sign_name}</p>
+                          </div>
+                        </div>
+                        <div className="text-center w-[35%]">
+                          <p className="text-[5px] sm:text-[6px] text-slate-400 mb-3 leading-relaxed">
+                            {ijazah.location}<br />
+                            {format(new Date(ijazah.issue_date || ijazah.created_at), 'dd MMM yyyy', { locale: localeId })}<br />
+                            {ijazah.right_sign_title}
+                          </p>
+                          <div className="border-t border-slate-700 pt-0.5">
+                            <p className="text-[5px] sm:text-[7px] font-bold text-slate-800 truncate">{ijazah.right_sign_name}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Watermark */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none">
+                      <BookOpen size={200} className="text-slate-900" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Profile Card */}
           <div className="card p-4 md:p-6 lg:p-8 flex flex-col md:flex-row items-center gap-4 md:gap-5 lg:gap-6 bg-gradient-to-br from-[#1e3a5f] to-slate-900 text-white relative overflow-hidden">
             <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white/10 bg-white/5 flex items-center justify-center flex-shrink-0 z-10 overflow-hidden">

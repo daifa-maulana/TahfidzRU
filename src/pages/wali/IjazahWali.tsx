@@ -43,7 +43,138 @@ export default function IjazahWali() {
     fetch();
   }, [user?.id]);
 
-  if (loading) return <div className="flex h-96 items-center justify-center text-slate-400">Memuat ijazah...</div>;
+  const handlePrint = () => {
+    if (!selected) return;
+    const dateStr = format(new Date(selected.issue_date || selected.created_at), 'dd MMMM yyyy', { locale: localeId });
+    const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ijazah – ${selected.santri?.name}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 landscape; margin: 0; }
+    html, body {
+      width: 297mm;
+      height: 210mm;
+      overflow: hidden;
+      background: white;
+      font-family: 'Inter', sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .card {
+      width: 297mm;
+      height: 210mm;
+      padding: 14mm 20mm;
+      border: 12px double #0f172a;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      background: white;
+    }
+    .header { text-align: center; }
+    .logo {
+      width: 64px; height: 64px;
+      background: #1e3a5f;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      transform: rotate(3deg);
+    }
+    .logo svg { color: white; }
+    h1 { font-size: 18pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; }
+    h2 { font-size: 30pt; font-weight: 900; color: #1e3a5f; text-transform: uppercase; letter-spacing: -0.02em; margin-bottom: 10px; }
+    .divider { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .divider-line { height: 1px; width: 48px; background: #cbd5e1; }
+    .divider-text { font-size: 7pt; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; }
+    .body { text-align: center; }
+    .intro { font-size: 9pt; color: #475569; margin-bottom: 8px; }
+    .name-block { border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; padding: 8px 0; margin-bottom: 8px; }
+    .santri-name { font-size: 26pt; font-weight: 700; color: #0f172a; text-transform: uppercase; }
+    .nis { font-size: 7pt; color: #94a3b8; font-family: monospace; }
+    .program-label { font-size: 6pt; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 2px; }
+    .program-name { font-size: 12pt; font-weight: 700; color: #1e3a5f; margin-bottom: 6px; }
+    .pencapaian { font-size: 8pt; color: #334155; font-style: italic; max-width: 420px; margin: 0 auto 8px; line-height: 1.5; }
+    .badges { display: flex; justify-content: center; gap: 32px; align-items: flex-end; }
+    .badge { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .badge-label { font-size: 6.5pt; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .badge-label-dark { font-size: 5.5pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.1em; }
+    .star { color: #fbbf24; font-size: 18pt; }
+    .footer { display: flex; justify-content: space-between; padding: 0 40px; }
+    .sign-block { text-align: center; width: 160px; }
+    .sign-label { font-size: 7pt; color: #64748b; margin-bottom: 40px; line-height: 1.6; }
+    .sign-line { border-top: 1px solid #0f172a; padding-top: 4px; }
+    .sign-name { font-size: 8pt; font-weight: 700; color: #0f172a; white-space: nowrap; }
+    .watermark {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.02; pointer-events: none;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    </div>
+    <h1>Pondok Pesantren Tahfidz</h1>
+    <h2>Roudhlatul Ulum</h2>
+    <div class="divider">
+      <div class="divider-line"></div>
+      <span class="divider-text">Ijazah Kehormatan</span>
+      <div class="divider-line"></div>
+    </div>
+  </div>
+  <div class="body">
+    <p class="intro">Dengan penuh rasa syukur dan bangga, kami menganugerahkan ijazah ini kepada:</p>
+    <div class="name-block">
+      <div class="santri-name">${selected.santri?.name}</div>
+      <div class="nis">NIS: ${selected.santri?.nis}</div>
+    </div>
+    <div class="program-label">Program</div>
+    <div class="program-name">${selected.title}</div>
+    <div class="pencapaian">&ldquo;${selected.pencapaian}&rdquo;</div>
+    <div class="badges">
+      <div class="badge"><span class="star">★</span><span class="badge-label">${selected.predikat}</span></div>
+      <div class="badge">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+        <span class="badge-label-dark">Tersertifikasi</span>
+      </div>
+      <div class="badge"><span class="star">★</span><span class="badge-label">${selected.predikat}</span></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="sign-block">
+      <div class="sign-label">${selected.left_sign_title}</div>
+      <div class="sign-line"><span class="sign-name">${selected.left_sign_name}</span></div>
+    </div>
+    <div class="sign-block">
+      <div class="sign-label">${selected.location},<br/>${dateStr}<br/>${selected.right_sign_title}</div>
+      <div class="sign-line"><span class="sign-name">${selected.right_sign_name}</span></div>
+    </div>
+  </div>
+  <div class="watermark">
+    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+  </div>
+</div>
+<script>window.onload = function(){ window.print(); window.onafterprint = function(){ window.close(); }; }<\/script>
+</body>
+</html>`;
+    const win = window.open('', '_blank', 'width=1200,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+
+  if (loading) return <div className="flex h-96 items-center justify-content text-slate-400">Memuat ijazah...</div>;
 
   if (ijazahList.length === 0) {
     return (
@@ -85,7 +216,7 @@ export default function IjazahWali() {
               ))}
             </select>
           )}
-          <button onClick={() => window.print()} className="btn-primary print:hidden">
+          <button onClick={handlePrint} className="btn-primary">
             <Printer size={16} /> Cetak
           </button>
         </div>
@@ -94,13 +225,13 @@ export default function IjazahWali() {
       {selected && (
         <div className="max-w-4xl mx-auto">
           {/* Issued date badge */}
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 print:hidden">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
             <Clock size={13} />
             Diterbitkan pada {format(new Date(selected.issue_date || selected.created_at), 'dd MMMM yyyy', { locale: localeId })}
           </div>
 
-          {/* Diploma */}
-          <div className="bg-white border-[12px] border-double border-slate-900 p-10 md:p-16 text-center relative shadow-xl min-h-[800px] flex flex-col justify-between print:border-slate-800 print:shadow-none">
+          {/* Diploma preview (on screen only) */}
+          <div className="bg-white border-[12px] border-double border-slate-900 p-10 md:p-16 text-center relative shadow-xl min-h-[800px] flex flex-col justify-between">
 
             {/* Header */}
             <div className="mb-8">

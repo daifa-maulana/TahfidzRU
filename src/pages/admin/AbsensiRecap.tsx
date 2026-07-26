@@ -10,6 +10,7 @@ import {
   ABSENSI_SESSIONS,
   SHOLAT_BERJAMAAH_SESSIONS,
 } from '../../constants/absensi';
+import { CAMPUS_ABSENSI_SESSIONS } from '../../constants/campus';
 
 const createStatsObj = (sessionList: readonly string[]) => {
   return Object.fromEntries(
@@ -45,7 +46,7 @@ export default function AbsensiRecap() {
   recapData.forEach((r: any) => {
     const isMatchingType = recapCategory === 'berjamaah' 
       ? (r.type === 'berjamaah' || (r.type !== 'tahfidz' && ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'].includes(r.session)))
-      : (r.type === 'tahfidz' || (r.type !== 'berjamaah' && ['Shubuh', 'Ashar', 'Maghrib'].includes(r.session)));
+      : (r.type === 'tahfidz' || (r.type !== 'berjamaah' && (CAMPUS_ABSENSI_SESSIONS as readonly string[]).includes(r.session)));
     if (!isMatchingType) return;
 
     const sid = r.santri_id;
