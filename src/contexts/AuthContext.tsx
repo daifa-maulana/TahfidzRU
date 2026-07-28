@@ -170,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, scheduleInactivityCheck, clearTimers]);
 
   const signOut = async () => {
+    window.localStorage.removeItem('remember_me');
     await supabase.auth.signOut();
   };
 

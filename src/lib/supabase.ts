@@ -34,9 +34,31 @@ if (!isSupabaseConfigured) {
 const finalUrl = isSupabaseConfigured ? supabaseUrl : 'https://placeholder.supabase.co';
 const finalKey = isSupabaseConfigured ? supabaseAnonKey : 'placeholder';
 
+const customStorage = {
+  getItem(key: string): string | null {
+    const localVal = window.localStorage.getItem(key);
+    if (localVal !== null) return localVal;
+    return window.sessionStorage.getItem(key);
+  },
+  setItem(key: string, value: string): void {
+    const remember = window.localStorage.getItem('remember_me') === 'true';
+    if (remember) {
+      window.localStorage.setItem(key, value);
+      window.sessionStorage.removeItem(key);
+    } else {
+      window.sessionStorage.setItem(key, value);
+      window.localStorage.removeItem(key);
+    }
+  },
+  removeItem(key: string): void {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  }
+};
+
 export const supabase = createClient(finalUrl, finalKey, {
   auth: {
-    storage: window.localStorage,
+    storage: customStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,

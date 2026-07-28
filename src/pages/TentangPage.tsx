@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Star, BookOpen, Shield, MapPin, Users } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 
 export default function TentangPage() {
   return (
@@ -113,11 +114,7 @@ export default function TentangPage() {
          </div>
       </section>
 
-      <footer className="py-12 bg-white border-t-4 border-pesantren-green">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm font-medium text-slate-500">© 2026 Pondok Pesantren Roudlotul 'Ulum</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

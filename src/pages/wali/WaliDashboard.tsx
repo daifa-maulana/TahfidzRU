@@ -45,13 +45,15 @@ export default function WaliDashboard() {
 
   const fetchIjazahStatus = async (santriId: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('ijazah')
         .select('*')
         .eq('santri_id', santriId)
         .eq('is_published', true)
-        .maybeSingle();
-      setIjazah(data || null);
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      setIjazah(data && data.length > 0 ? data[0] : null);
     } catch (error) {
       console.error('Error fetching ijazah:', error);
       setIjazah(null);
@@ -177,11 +179,19 @@ export default function WaliDashboard() {
                 {/* Mini Ijazah — A4 landscape preview scaled to card */}
                 <div className="p-4 bg-amber-50/30">
                   <div
-                    className="bg-white border-[8px] border-double border-slate-800 relative overflow-hidden shadow-lg mx-auto"
-                    style={{ aspectRatio: '297/210', maxWidth: '700px' }}
+                    className="bg-white relative shadow-lg mx-auto overflow-hidden"
+                    style={{
+                      aspectRatio: '297/210',
+                      maxWidth: '700px',
+                      backgroundImage: "url('/sertifikat 1.svg')",
+                      backgroundSize: '100% 100%',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      padding: '9% 10% 7% 10%'
+                    }}
                   >
                     {/* Inner layout */}
-                    <div className="absolute inset-0 flex flex-col justify-between p-[5%]">
+                    <div className="w-full h-full flex flex-col justify-between">
 
                       {/* Header */}
                       <div className="text-center">
@@ -255,11 +265,6 @@ export default function WaliDashboard() {
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Watermark */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none">
-                      <BookOpen size={200} className="text-slate-900" />
                     </div>
                   </div>
                 </div>

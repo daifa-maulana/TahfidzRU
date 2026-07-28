@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { BookOpen, Printer, ArrowLeft, Award, Star, Settings, Send, CheckCircle2, Loader2, AlertTriangle, UserPlus } from 'lucide-react';
+import { BookOpen, Printer, ArrowLeft, Award, Star, Settings, Send, CheckCircle2, Loader2, AlertTriangle, UserPlus, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Modal } from '../../components/Modal';
@@ -12,9 +12,11 @@ export default function TahfidzDiploma() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [santri, setSantri] = useState<any>(null);
-  const [existingIjazah, setExistingIjazah] = useState<any>(null);
+  const [ijazahList, setIjazahList] = useState<any[]>([]);
+  const [selectedIjazah, setSelectedIjazah] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { toast, showToast } = useToast();
 
@@ -33,33 +35,72 @@ export default function TahfidzDiploma() {
     rightSignTitle: 'Ketua Program Tahfidz',
   });
 
+  const resetToDefaultSettings = () => {
+    setSettings({
+      schoolName: 'Pondok Pesantren Tahfidz',
+      schoolSubtitle: 'Roudhlatul Ulum',
+      certificateType: 'Ijazah Kehormatan',
+      introText: 'Dengan penuh rasa syukur dan bangga, kami menganugerahkan ijazah ini kepada:',
+      title: 'Program Tahfidz Al-Qur\'an',
+      pencapaian: 'Telah menyelesaikan program tahfidz dengan sempurna, menghafal dan menjaga ayat-ayat suci Al-Qur\'an dengan penuh dedikasi dan ketekunan.',
+      location: 'Cihanjuang, Parongpong',
+      predikat: 'Mumtaz',
+      leftSignName: 'K.H. Ubaydillah Al Bisyri',
+      leftSignTitle: 'Pengasuh Pesantren',
+      rightSignName: 'Hj. Siti Aisyah, S.Pd.I',
+      rightSignTitle: 'Ketua Program Tahfidz',
+    });
+  };
+
+  const loadIjazahSettings = (d: any) => {
+    setSettings({
+      schoolName: d.school_name || 'Pondok Pesantren Tahfidz',
+      schoolSubtitle: d.school_subtitle || 'Roudhlatul Ulum',
+      certificateType: d.certificate_type || 'Ijazah Kehormatan',
+      introText: d.intro_text || 'Dengan penuh rasa syukur dan bangga, kami menganugerahkan ijazah ini kepada:',
+      title: d.title || 'Program Tahfidz Al-Qur\'an',
+      pencapaian: d.pencapaian || '',
+      location: d.location || 'Cihanjuang, Parongpong',
+      predikat: d.predikat || 'Mumtaz',
+      leftSignName: d.left_sign_name || 'K.H. Ubaydillah Al Bisyri',
+      leftSignTitle: d.left_sign_title || 'Pengasuh Pesantren',
+      rightSignName: d.right_sign_name || 'Hj. Siti Aisyah, S.Pd.I',
+      rightSignTitle: d.right_sign_title || 'Ketua Program Tahfidz',
+    });
+  };
+
+  const fetchIjazahList = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ijazah')
+        .select('*')
+        .eq('santri_id', id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setIjazahList(data || []);
+      return data || [];
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  };
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const [santriRes, ijazahRes] = await Promise.all([
+        const [santriRes, ijazahs] = await Promise.all([
           supabase.from('santri').select('*').eq('id', id).single(),
-          supabase.from('ijazah').select('*').eq('santri_id', id).maybeSingle(),
+          fetchIjazahList()
         ]);
         if (santriRes.error) throw santriRes.error;
         setSantri(santriRes.data);
 
-        if (ijazahRes.data) {
-          setExistingIjazah(ijazahRes.data);
-          const d = ijazahRes.data;
-          setSettings({
-            schoolName: d.school_name || settings.schoolName,
-            schoolSubtitle: d.school_subtitle || settings.schoolSubtitle,
-            certificateType: d.certificate_type || settings.certificateType,
-            introText: d.intro_text || settings.introText,
-            title: d.title || settings.title,
-            pencapaian: d.pencapaian || settings.pencapaian,
-            location: d.location || settings.location,
-            predikat: d.predikat || settings.predikat,
-            leftSignName: d.left_sign_name || settings.leftSignName,
-            leftSignTitle: d.left_sign_title || settings.leftSignTitle,
-            rightSignName: d.right_sign_name || settings.rightSignName,
-            rightSignTitle: d.right_sign_title || settings.rightSignTitle,
-          });
+        if (ijazahs && ijazahs.length > 0) {
+          setSelectedIjazah(ijazahs[0]);
+          loadIjazahSettings(ijazahs[0]);
+        } else {
+          setSelectedIjazah(null);
+          resetToDefaultSettings();
         }
       } catch (error) {
         console.error(error);
@@ -91,13 +132,20 @@ export default function TahfidzDiploma() {
         issue_date: format(new Date(), 'yyyy-MM-dd'),
       };
 
-      if (existingIjazah) {
-        await supabase.from('ijazah').update(payload).eq('id', existingIjazah.id);
-        setExistingIjazah({ ...existingIjazah, ...payload });
+      let savedData: any = null;
+      if (selectedIjazah) {
+        const { data, error } = await supabase.from('ijazah').update(payload).eq('id', selectedIjazah.id).select().single();
+        if (error) throw error;
+        savedData = data;
       } else {
-        const { data } = await supabase.from('ijazah').insert(payload).select().single();
-        setExistingIjazah(data);
+        const { data, error } = await supabase.from('ijazah').insert(payload).select().single();
+        if (error) throw error;
+        savedData = data;
       }
+
+      const list = await fetchIjazahList();
+      const updatedItem = list.find((item: any) => item.id === savedData.id);
+      setSelectedIjazah(updatedItem || savedData);
 
       if (publish) {
         showToast('Ijazah berhasil dikirim ke portal wali!', 'success');
@@ -109,6 +157,29 @@ export default function TahfidzDiploma() {
       showToast(err.message || 'Gagal menyimpan ijazah', 'error');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedIjazah) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus sertifikat ini?')) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from('ijazah').delete().eq('id', selectedIjazah.id);
+      if (error) throw error;
+      showToast('Sertifikat berhasil dihapus', 'success');
+      const list = await fetchIjazahList();
+      if (list && list.length > 0) {
+        setSelectedIjazah(list[0]);
+        loadIjazahSettings(list[0]);
+      } else {
+        setSelectedIjazah(null);
+        resetToDefaultSettings();
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menghapus sertifikat', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -135,101 +206,115 @@ export default function TahfidzDiploma() {
     .card {
       width: 297mm;
       height: 210mm;
-      padding: 14mm 20mm;
-      border: 12px double #0f172a;
+      padding: 16mm;
       box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
       position: relative;
       overflow: hidden;
-      background: white;
+      background-image: url('/sertifikat 1.svg');
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: white;
     }
-    .header { text-align: center; }
-    .logo {
-      width: 64px; height: 64px;
-      background: #1e3a5f;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 12px;
-      transform: rotate(3deg);
+    .card {
+      width: 297mm;
+      height: 210mm;
+      position: relative;
+      overflow: hidden;
+      background-image: url('/sertifikat 1.svg');
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: white;
     }
-    .logo svg { color: white; }
-    h1 { font-size: 18pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; }
-    h2 { font-size: 30pt; font-weight: 900; color: #1e3a5f; text-transform: uppercase; letter-spacing: -0.02em; margin-bottom: 10px; }
-    .divider { display: flex; align-items: center; justify-content: center; gap: 12px; }
-    .divider-line { height: 1px; width: 48px; background: #cbd5e1; }
-    .divider-text { font-size: 7pt; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; }
-    .body { text-align: center; }
-    .intro { font-size: 9pt; color: #475569; margin-bottom: 8px; }
-    .name-block { border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; padding: 8px 0; margin-bottom: 8px; }
-    .santri-name { font-size: 26pt; font-weight: 700; color: #0f172a; text-transform: uppercase; }
-    .nis { font-size: 7pt; color: #94a3b8; font-family: monospace; }
-    .program-label { font-size: 6pt; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 2px; }
-    .program-name { font-size: 12pt; font-weight: 700; color: #1e3a5f; margin-bottom: 6px; }
-    .pencapaian { font-size: 8pt; color: #334155; font-style: italic; max-width: 420px; margin: 0 auto 8px; line-height: 1.5; }
-    .badges { display: flex; justify-content: center; gap: 32px; align-items: flex-end; }
-    .badge { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .badge-label { font-size: 6.5pt; font-weight: 700; color: #64748b; text-transform: uppercase; }
-    .badge-label-dark { font-size: 5.5pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.1em; }
-    .star { color: #fbbf24; font-size: 18pt; }
-    .footer { display: flex; justify-content: space-between; padding: 0 40px; }
-    .sign-block { text-align: center; width: 160px; }
-    .sign-label { font-size: 7pt; color: #64748b; margin-bottom: 40px; line-height: 1.6; }
-    .sign-line { border-top: 1px solid #0f172a; padding-top: 4px; }
-    .sign-name { font-size: 8pt; font-weight: 700; color: #0f172a; white-space: nowrap; }
-    .watermark {
-      position: absolute; top: 50%; left: 50%;
+    .cert-name {
+      position: absolute;
+      top: 48%;
+      left: 50%;
       transform: translate(-50%, -50%);
-      opacity: 0.02; pointer-events: none;
+      background: white;
+      padding: 4px 20px;
+      font-family: 'Playfair Display', serif;
+      font-weight: bold;
+      font-style: italic;
+      font-size: 26pt;
       color: #0f172a;
+      white-space: nowrap;
+    }
+    .cert-program {
+      position: absolute;
+      top: 64%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 4px 20px;
+      font-family: 'Inter', sans-serif;
+      font-weight: bold;
+      font-size: 16pt;
+      color: #1e3a5f;
+      white-space: nowrap;
+    }
+    .cert-date {
+      position: absolute;
+      bottom: 23%;
+      right: 16%;
+      background: white;
+      padding: 2px 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 10pt;
+      color: #334155;
+      white-space: nowrap;
+      text-align: right;
+    }
+    .cert-sign-left {
+      position: absolute;
+      bottom: 10%;
+      left: 20%;
+      width: 180px;
+      text-align: center;
+      background: white;
+      padding: 4px 10px;
+      font-family: 'Inter', sans-serif;
+    }
+    .cert-sign-right {
+      position: absolute;
+      bottom: 10%;
+      right: 20%;
+      width: 180px;
+      text-align: center;
+      background: white;
+      padding: 4px 10px;
+      font-family: 'Inter', sans-serif;
+    }
+    .sign-title {
+      font-size: 7.5pt;
+      color: #64748b;
+      margin-bottom: 25px;
+      line-height: 1.4;
+    }
+    .sign-name {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-top: 1px solid #0f172a;
+      padding-top: 3px;
+      display: inline-block;
+      width: 100%;
     }
   </style>
 </head>
 <body>
 <div class="card">
-  <div class="header">
-    <div class="logo">
-      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-    </div>
-    <h1>${settings.schoolName}</h1>
-    <h2>${settings.schoolSubtitle}</h2>
-    <div class="divider">
-      <div class="divider-line"></div>
-      <span class="divider-text">${settings.certificateType}</span>
-      <div class="divider-line"></div>
-    </div>
+  <div class="cert-name">${santri.name}</div>
+  <div class="cert-program">${settings.title}</div>
+  <div class="cert-date">${settings.location || 'Cihanjuang'}, ${dateStr}</div>
+  <div class="cert-sign-left">
+    <div class="sign-title">${settings.leftSignTitle}</div>
+    <div class="sign-name">${settings.leftSignName}</div>
   </div>
-  <div class="body">
-    <p class="intro">${settings.introText}</p>
-    <div class="name-block">
-      <div class="santri-name">${santri.name}</div>
-      <div class="nis">NIS: ${santri.nis}</div>
-    </div>
-    <div class="program-label">Program</div>
-    <div class="program-name">${settings.title}</div>
-    <div class="pencapaian">&ldquo;${settings.pencapaian}&rdquo;</div>
-    <div class="badges">
-      <div class="badge"><span class="star">★</span><span class="badge-label">${settings.predikat}</span></div>
-      <div class="badge">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
-        <span class="badge-label-dark">Tersertifikasi</span>
-      </div>
-      <div class="badge"><span class="star">★</span><span class="badge-label">${settings.predikat}</span></div>
-    </div>
-  </div>
-  <div class="footer">
-    <div class="sign-block">
-      <div class="sign-label">${settings.leftSignTitle}</div>
-      <div class="sign-line"><span class="sign-name">${settings.leftSignName}</span></div>
-    </div>
-    <div class="sign-block">
-      <div class="sign-label">${settings.location},<br/>${dateStr}<br/>${settings.rightSignTitle}</div>
-      <div class="sign-line"><span class="sign-name">${settings.rightSignName}</span></div>
-    </div>
-  </div>
-  <div class="watermark">
-    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+  <div class="cert-sign-right">
+    <div class="sign-title">${settings.rightSignTitle}</div>
+    <div class="sign-name">${settings.rightSignName}</div>
   </div>
 </div>
 <script>window.onload = function(){ window.print(); window.onafterprint = function(){ window.close(); }; }<\/script>
@@ -245,7 +330,7 @@ export default function TahfidzDiploma() {
   if (loading) return <div className="p-8 text-center text-slate-400">Menyiapkan Ijazah...</div>;
   if (!santri) return <div className="p-8 text-center text-rose-500">Data santri tidak ditemukan.</div>;
 
-  const isPublished = existingIjazah?.is_published;
+  const isPublished = selectedIjazah?.is_published;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-12">
@@ -257,17 +342,51 @@ export default function TahfidzDiploma() {
           <button onClick={() => navigate(-1)} className="btn-secondary mb-2">
             <ArrowLeft size={16} /> Kembali
           </button>
+          
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-slate-500 font-semibold">Pilih Ijazah:</span>
+            <select
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20"
+              value={selectedIjazah?.id || 'new'}
+              onChange={(e) => {
+                if (e.target.value === 'new') {
+                  setSelectedIjazah(null);
+                  resetToDefaultSettings();
+                } else {
+                  const found = ijazahList.find(i => i.id === e.target.value);
+                  if (found) {
+                    setSelectedIjazah(found);
+                    loadIjazahSettings(found);
+                  }
+                }
+              }}
+            >
+              {ijazahList.map((i, index) => (
+                <option key={i.id} value={i.id}>
+                  {i.title} ({i.is_published ? 'Dikirim' : 'Draf'})
+                </option>
+              ))}
+              <option value="new">+ Tambah Sertifikat Baru</option>
+            </select>
+          </div>
+
           {isPublished && (
-            <p className="text-xs text-emerald-600 font-bold flex items-center gap-1 mt-1">
+            <p className="text-xs text-emerald-600 font-bold flex items-center gap-1 mt-2">
               <CheckCircle2 size={13} /> Sudah dikirim ke portal wali
             </p>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          {selectedIjazah && (
+            <button onClick={handleDelete} disabled={isDeleting} className="btn-secondary text-rose-600 hover:bg-rose-50 border-rose-200 hover:border-rose-300">
+              {isDeleting ? <Loader2 size={16} className="animate-spin text-rose-500" /> : <Trash size={16} />}
+              Hapus
+            </button>
+          )}
           <button onClick={() => setIsSettingsOpen(true)} className="btn-secondary">
             <Settings size={16} /> Edit & Simpan
           </button>
-          <button onClick={handlePrint} className="btn-secondary">
+          <button onClick={handlePrint} className="btn-secondary" disabled={!selectedIjazah}>
             <Printer size={16} /> Cetak
           </button>
           <button
@@ -304,81 +423,85 @@ export default function TahfidzDiploma() {
       )}
 
       {/* Diploma Card */}
-      <div className="max-w-5xl mx-auto animate-fade-in">
-        <div className="bg-white border-[12px] border-double border-slate-900 p-8 md:p-12 text-center relative print:border-slate-800 print:shadow-none shadow-xl aspect-[297/210] flex flex-col justify-between print-ijazah-container overflow-hidden">
-
-          {/* Header */}
-          <div className="mb-4 relative z-10">
-            <div className="w-16 h-16 bg-[#1e3a5f] text-white rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-lg">
-              <BookOpen size={36} />
+      <div className="max-w-5xl mx-auto animate-fade-in mb-10">
+        <div
+          className="bg-white relative shadow-xl flex flex-col justify-between overflow-hidden"
+          style={{
+            aspectRatio: '297/210',
+            backgroundImage: "url('/sertifikat 1.svg')",
+            backgroundSize: '100% 100%',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            width: '100%',
+            maxWidth: '780px',
+            height: 'auto'
+          }}
+        >
+          {/* Scaled overlays for responsive browser preview */}
+          <div 
+            className="absolute inset-0"
+            style={{ fontSize: 'calc(0.6vw + 0.4vh)' }}
+          >
+            <div 
+              className="absolute bg-white px-2 py-0.5 font-bold italic font-serif text-slate-900 whitespace-nowrap"
+              style={{
+                top: '48%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: '2.2em'
+              }}
+            >
+              {santri.name}
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-widest mb-1">{settings.schoolName}</h1>
-            <h2 className="text-4xl font-black text-[#1e3a5f] uppercase tracking-tighter mb-6">{settings.schoolSubtitle}</h2>
-            <div className="flex items-center justify-center gap-4">
-              <div className="h-px w-16 bg-slate-300"></div>
-              <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">{settings.certificateType}</span>
-              <div className="h-px w-16 bg-slate-300"></div>
-            </div>
-          </div>
 
-          {/* Body */}
-          <div className="max-w-2xl mx-auto space-y-4 flex-1 flex flex-col justify-center relative z-10">
-            <p className="text-base text-slate-600 leading-relaxed">
-              {settings.introText}
-            </p>
-            <div className="py-3 border-y border-slate-100 print:py-4">
-              <h3 className="text-3xl font-bold text-slate-900 uppercase mb-1 print:text-4xl">{santri.name}</h3>
-              <p className="text-xs text-slate-500 font-mono">NIS: {santri.nis}</p>
+            <div 
+              className="absolute bg-white px-2 py-0.5 font-bold text-[#1e3a5f] whitespace-nowrap"
+              style={{
+                top: '64%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: '1.3em'
+              }}
+            >
+              {settings.title}
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Program</p>
-              <p className="text-lg font-bold text-[#1e3a5f] print:text-xl">{settings.title}</p>
+            <div 
+              className="absolute bg-white px-2 py-0.5 text-slate-700 whitespace-nowrap"
+              style={{
+                bottom: '23%',
+                right: '16%',
+                fontSize: '0.85em'
+              }}
+            >
+              {settings.location || 'Cihanjuang'}, {format(new Date(), 'dd MMMM yyyy', { locale: localeId })}
             </div>
 
-            <p className="text-sm text-slate-700 leading-relaxed italic max-w-xl mx-auto print:text-base">
-              "{settings.pencapaian}"
-            </p>
-
-            <div className="flex items-center justify-center gap-10 pt-2 print:pt-4">
-              <div className="flex flex-col items-center">
-                <Star className="text-amber-400 mb-1" size={24} fill="currentColor" />
-                <span className="text-xs font-bold text-slate-500 uppercase">{settings.predikat}</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <Award className="text-[#1e3a5f] mb-1" size={40} />
-                <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Tersertifikasi</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <Star className="text-amber-400 mb-1" size={24} fill="currentColor" />
-                <span className="text-xs font-bold text-slate-500 uppercase">{settings.predikat}</span>
-              </div>
+            <div 
+              className="absolute bg-white px-2 py-0.5 text-center"
+              style={{
+                bottom: '9%',
+                left: '20%',
+                width: '24%',
+                fontSize: '0.8em'
+              }}
+            >
+              <div className="text-slate-500 mb-[1.5em] leading-tight">{settings.leftSignTitle}</div>
+              <div className="font-bold text-slate-900 border-t border-slate-900 pt-0.5 truncate">{settings.leftSignName}</div>
             </div>
-          </div>
 
-          {/* Footer / Signature */}
-          <div className="mt-8 flex justify-between items-end px-12 print:mt-12 relative z-10">
-            <div className="text-center w-52">
-              <p className="text-xs text-slate-500 mb-14 print:mb-16">{settings.leftSignTitle}</p>
-              <div className="border-t border-slate-955 pt-1">
-                <p className="text-sm font-bold text-slate-900 whitespace-nowrap">{settings.leftSignName}</p>
-              </div>
+            <div 
+              className="absolute bg-white px-2 py-0.5 text-center"
+              style={{
+                bottom: '9%',
+                right: '20%',
+                width: '24%',
+                fontSize: '0.8em'
+              }}
+            >
+              <div className="text-slate-500 mb-[1.5em] leading-tight">{settings.rightSignTitle}</div>
+              <div className="font-bold text-slate-900 border-t border-slate-900 pt-0.5 truncate">{settings.rightSignName}</div>
             </div>
-            <div className="text-center w-52">
-              <p className="text-xs text-slate-500 mb-14 print:mb-16">
-                {settings.location},<br />
-                {format(new Date(), 'dd MMMM yyyy', { locale: localeId })}<br />
-                {settings.rightSignTitle}
-              </p>
-              <div className="border-t border-slate-955 pt-1">
-                <p className="text-sm font-bold text-slate-900 whitespace-nowrap">{settings.rightSignName}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Watermark */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none print-watermark">
-            <BookOpen size={450} />
           </div>
         </div>
       </div>

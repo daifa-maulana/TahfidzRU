@@ -8,6 +8,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Login() {
     setError(null);
 
     try {
+      window.localStorage.setItem('remember_me', rememberMe ? 'true' : 'false');
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -158,6 +160,18 @@ export default function Login() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-slate-300 text-pesantren-green focus:ring-pesantren-green/20"
+                />
+                <span className="text-xs font-semibold text-slate-500">Ingat Saya</span>
+              </label>
             </div>
 
             <button

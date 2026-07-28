@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, Eye, X, Loader2 } from 'lucide-react';
 import { FALLBACK_GALERI_ITEMS, mapGaleriFromDb, type GaleriItem } from '../constants/galeriItems';
@@ -188,11 +189,7 @@ export default function GaleriPage() {
         )}
       </AnimatePresence>
 
-      <footer className="py-12 bg-white border-t-4 border-pesantren-green">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm font-medium text-slate-500">© 2026 Pondok Pesantren Roudlotul 'Ulum</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

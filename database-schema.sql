@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS hero_slides (
 CREATE TABLE IF NOT EXISTS galeri_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
-    category TEXT DEFAULT 'Kegiatan' CHECK (category IN ('Kegiatan', 'Fasilitas', 'Kajian')),
+    category TEXT DEFAULT 'Kegiatan' CHECK (category IN ('Kegiatan', 'Fasilitas', 'Kajian', 'Prestasi & Pencapaian')),
     image_url TEXT NOT NULL,
     description TEXT,
     sort_order INTEGER DEFAULT 0,
@@ -243,6 +243,14 @@ CREATE POLICY "hero_slides_admin_all" ON hero_slides FOR ALL USING (is_admin());
 
 CREATE POLICY "galeri_items_select_all" ON galeri_items FOR SELECT USING (is_active = true OR is_admin());
 CREATE POLICY "galeri_items_admin_all" ON galeri_items FOR ALL USING (is_admin());
+
+-- Ijazah
+CREATE POLICY "ijazah_admin_all" ON ijazah FOR ALL USING (is_admin());
+CREATE POLICY "ijazah_select_wali" ON ijazah FOR SELECT USING (
+    is_published = true AND (
+        EXISTS (SELECT 1 FROM public.santri WHERE santri.id = ijazah.santri_id AND santri.wali_id = auth.uid())
+    )
+);
 
 -- Storage bucket untuk foto/video konten website
 INSERT INTO storage.buckets (id, name, public)

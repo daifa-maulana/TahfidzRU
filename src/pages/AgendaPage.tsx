@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { dataService } from '../services/data';
 import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 import { Calendar, MapPin, Clock, Loader2, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -129,11 +130,7 @@ export default function AgendaPage() {
         </div>
       </section>
 
-      <footer className="py-12 bg-white border-t-4 border-pesantren-green">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm font-medium text-slate-500">© 2026 Pondok Pesantren Roudlotul 'Ulum</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

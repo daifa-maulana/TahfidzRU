@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { dataService } from '../../services/data';
 import {
-  Image, Plus, Edit2, Trash2, Loader2, X, Film, LayoutGrid, Eye, EyeOff, GripVertical,
+  Image, Plus, Edit2, Trash2, Loader2, X, Film, LayoutGrid, Eye, EyeOff, GripVertical, Settings
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
@@ -9,7 +9,7 @@ import { Modal } from '../../components/Modal';
 import { motion } from 'motion/react';
 import { cn } from '../../utils/cn';
 
-type Tab = 'hero' | 'galeri';
+type Tab = 'hero' | 'galeri' | 'footer';
 
 const GALERI_CATEGORIES = ['Kegiatan', 'Prestasi & Pencapaian', 'Kajian'];
 
@@ -19,6 +19,7 @@ export default function KontenManagement() {
   const [galeriItems, setGaleriItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [mediaPreview, setMediaPreview] = useState('');
@@ -46,21 +47,54 @@ export default function KontenManagement() {
     is_active: true,
   });
 
+  const [footerForm, setFooterForm] = useState({
+    footer_desc: '',
+    footer_address: '',
+    footer_phone: '',
+    footer_email: '',
+    footer_instagram: '',
+    footer_copyright: '',
+  });
+
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [hero, galeri] = await Promise.all([
+      const [hero, galeri, settings] = await Promise.all([
         dataService.getHeroSlides(false),
         dataService.getGaleriItems(false),
+        dataService.getSettings()
       ]);
       setHeroSlides(hero || []);
       setGaleriItems(galeri || []);
+
+      const fallbackSettings = {
+        footer_desc: settings.footer_desc || "Mencetak generasi penghafal Al-Qur'an yang berakhlak mulia, unggul dalam ilmu pengetahuan, dan siap menghadapi tantangan zaman.",
+        footer_address: settings.footer_address || 'Cihanjuang Parongpong KBB, Jawa Barat',
+        footer_phone: settings.footer_phone || '(022) 1234567',
+        footer_email: settings.footer_email || 'info@roudlotululum.com',
+        footer_instagram: settings.footer_instagram || 'https://instagram.com/roudlotululum',
+        footer_copyright: settings.footer_copyright || "© 2026 Pesantren Roudlotul 'Ulum. Hak Cipta Dilindungi.",
+      };
+      setFooterForm(fallbackSettings);
     } catch {
       showToast('Gagal memuat konten website', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveFooterSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    try {
+      await dataService.saveSettings(footerForm);
+      showToast('Pengaturan footer berhasil disimpan!', 'success');
+    } catch (err: any) {
+      showToast('Gagal menyimpan pengaturan: ' + err.message, 'error');
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
@@ -233,13 +267,15 @@ export default function KontenManagement() {
         <div>
           <h1 className="page-title">Konten Website</h1>
           <p className="text-slate-500 font-medium mt-1">
-            Kelola foto slider beranda dan galeri pesantren via Supabase
+            Kelola foto slider beranda, galeri, dan konfigurasi info footer via Supabase
           </p>
         </div>
-        <button onClick={() => handleOpenModal()} className="btn-primary">
-          <Plus size={18} />
-          <span>Tambah {tab === 'hero' ? 'Slide' : 'Foto'}</span>
-        </button>
+        {tab !== 'footer' && (
+          <button onClick={() => handleOpenModal()} className="btn-primary">
+            <Plus size={18} />
+            <span>Tambah {tab === 'hero' ? 'Slide' : 'Foto'}</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -262,12 +298,120 @@ export default function KontenManagement() {
         >
           <LayoutGrid size={16} /> Galeri Foto
         </button>
+        <button
+          onClick={() => setTab('footer')}
+          className={cn(
+            'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-extrabold transition-all',
+            tab === 'footer' ? 'bg-white text-pesantren-dark shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          )}
+        >
+          <Settings size={16} /> Pengaturan Footer
+        </button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-pesantren-green" size={36} />
         </div>
+      ) : tab === 'footer' ? (
+        <form onSubmit={handleSaveFooterSettings} className="glass-panel p-8 max-w-2xl space-y-6">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+            <div className="w-10 h-10 bg-pesantren-green/10 text-pesantren-green rounded-xl flex items-center justify-center">
+              <Settings size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Ubah Tampilan & Info Footer</h2>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">Semua halaman publik akan otomatis terupdate</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Deskripsi Singkat Pesantren</label>
+              <textarea
+                className="input-field min-h-[90px]"
+                value={footerForm.footer_desc}
+                onChange={(e) => setFooterForm({ ...footerForm, footer_desc: e.target.value })}
+                placeholder="Deskripsi singkat mengenai visi/profil pesantren di footer..."
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">No. Telepon / WhatsApp</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={footerForm.footer_phone}
+                  onChange={(e) => setFooterForm({ ...footerForm, footer_phone: e.target.value })}
+                  placeholder="(022) 1234567"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Kontak</label>
+                <input
+                  type="email"
+                  className="input-field"
+                  value={footerForm.footer_email}
+                  onChange={(e) => setFooterForm({ ...footerForm, footer_email: e.target.value })}
+                  placeholder="info@roudlotululum.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Alamat Fisik Lengkap</label>
+              <input
+                type="text"
+                className="input-field"
+                value={footerForm.footer_address}
+                onChange={(e) => setFooterForm({ ...footerForm, footer_address: e.target.value })}
+                placeholder="Alamat lengkap pesantren..."
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link Instagram</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={footerForm.footer_instagram}
+                  onChange={(e) => setFooterForm({ ...footerForm, footer_instagram: e.target.value })}
+                  placeholder="https://instagram.com/akunpesantren"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Teks Hak Cipta (Copyright)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={footerForm.footer_copyright}
+                  onChange={(e) => setFooterForm({ ...footerForm, footer_copyright: e.target.value })}
+                  placeholder="© 2026 Pesantren Roudlotul 'Ulum. Hak Cipta Dilindungi."
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <button
+              type="submit"
+              disabled={isSavingSettings}
+              className="btn-primary py-2 px-6 flex items-center gap-2"
+            >
+              {isSavingSettings && <Loader2 size={16} className="animate-spin" />}
+              <span>{isSavingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
+            </button>
+          </div>
+        </form>
       ) : currentList.length === 0 ? (
         <div className="glass-panel p-12 text-center">
           <Image className="mx-auto text-slate-300 mb-4" size={48} />

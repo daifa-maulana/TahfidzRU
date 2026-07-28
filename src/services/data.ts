@@ -239,6 +239,31 @@ export const dataService = {
     throw error;
   },
 
+  // Settings
+  getSettings: async () => {
+    try {
+      const { data, error } = await supabase.from('campus_settings').select('*');
+      if (error) throw error;
+      const settingsObj: Record<string, string> = {};
+      data.forEach((row: any) => {
+        settingsObj[row.key] = row.value;
+      });
+      return settingsObj;
+    } catch (err) {
+      console.warn("Could not load settings:", err);
+      return {};
+    }
+  },
+  saveSettings: async (settings: Record<string, string>) => {
+    const payloads = Object.entries(settings).map(([key, value]) => ({
+      key,
+      value,
+      updated_at: new Date().toISOString()
+    }));
+    const { error } = await supabase.from('campus_settings').upsert(payloads);
+    if (error) throw error;
+  },
+
   // Dashboard Stats
   getDashboardStats: async () => {
     let santriCount = 0;
