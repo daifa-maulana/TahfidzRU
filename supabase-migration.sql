@@ -39,8 +39,9 @@ INSERT INTO campus_settings (key, value) VALUES
 ('footer_copyright', '© 2026 Pondok Pesantren Roudlotul ''Ulum. Hak Cipta Dilindungi.')
 ON CONFLICT (key) DO NOTHING;
 
--- 6. Tambahkan kolom pendukung ijazah jika belum ada
+-- 6. Tambahkan kolom pendukung ijazah & agenda jika belum ada
 ALTER TABLE public.ijazah ADD COLUMN IF NOT EXISTS statement_text TEXT DEFAULT 'Telah menyelesaikan program tahfidz Al-Qur''an dengan pencapaian:';
 ALTER TABLE public.ijazah ADD COLUMN IF NOT EXISTS left_sign_image TEXT;
 ALTER TABLE public.ijazah ADD COLUMN IF NOT EXISTS right_sign_image TEXT;
+ALTER TABLE public.agenda ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 

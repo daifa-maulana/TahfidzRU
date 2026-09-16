@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS agenda (
     time TIME DEFAULT '08:00',
     location TEXT,
     photo_url TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

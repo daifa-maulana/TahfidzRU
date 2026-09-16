@@ -180,31 +180,131 @@ export const dataService = {
     ...item,
     date: typeof item.date === 'string' ? item.date.split('T')[0] : String(item.date || '')
   })),
-  getAgenda: () => handleResponse(
-    supabase.from('agenda').select('*').order('date', { ascending: true })
-  ).then(data => dataService.normalizeAgenda(data)),
-  createAgenda: (data: any) => handleResponse(supabase.from('agenda').insert(data)),
-  updateAgenda: (id: string, data: any) => handleResponse(supabase.from('agenda').update(data).eq('id', id)),
+  getAgenda: async (activeOnly = true) => {
+    try {
+      const { data, error } = await supabase.from('agenda').select('*').order('date', { ascending: true });
+      if (error) throw error;
+      const normalized = dataService.normalizeAgenda(data || []);
+      if (activeOnly) {
+        return normalized.filter((item: any) => item.is_active !== false);
+      }
+      return normalized;
+    } catch (err) {
+      console.warn('getAgenda error:', err);
+      return [];
+    }
+  },
+  createAgenda: async (data: any) => {
+    try {
+      const { data: res, error } = await supabase.from('agenda').insert(data).select();
+      if (error) throw error;
+      return res;
+    } catch (err: any) {
+      if (data && 'is_active' in data) {
+        const { is_active, ...rest } = data;
+        return handleResponse(supabase.from('agenda').insert(rest));
+      }
+      throw err;
+    }
+  },
+  updateAgenda: async (id: string, data: any) => {
+    try {
+      const { data: res, error } = await supabase.from('agenda').update(data).eq('id', id).select();
+      if (error) throw error;
+      return res;
+    } catch (err: any) {
+      if (data && 'is_active' in data) {
+        const { is_active, ...rest } = data;
+        if (Object.keys(rest).length > 0) {
+          return handleResponse(supabase.from('agenda').update(rest).eq('id', id));
+        }
+        return null;
+      }
+      throw err;
+    }
+  },
   deleteAgenda: (id: string) => handleResponse(supabase.from('agenda').delete().eq('id', id)),
 
   // Hero Slides (beranda)
-  getHeroSlides: (activeOnly = true) => {
-    let query = supabase.from('hero_slides').select('*').order('sort_order', { ascending: true });
-    if (activeOnly) query = query.eq('is_active', true);
-    return handleResponse(query);
+  getHeroSlides: async (activeOnly = true) => {
+    try {
+      const { data, error } = await supabase.from('hero_slides').select('*').order('sort_order', { ascending: true });
+      if (error) throw error;
+      const items = data || [];
+      if (activeOnly) {
+        return items.filter((item: any) => item.is_active !== false);
+      }
+      return items;
+    } catch {
+      return [];
+    }
   },
-  createHeroSlide: (data: any) => handleResponse(supabase.from('hero_slides').insert(data).select().single()),
-  updateHeroSlide: (id: string, data: any) => handleResponse(supabase.from('hero_slides').update(data).eq('id', id).select().single()),
+  createHeroSlide: async (data: any) => {
+    try {
+      return await handleResponse(supabase.from('hero_slides').insert(data).select().single());
+    } catch (err: any) {
+      if (data && 'is_active' in data) {
+        const { is_active, ...rest } = data;
+        return handleResponse(supabase.from('hero_slides').insert(rest).select().single());
+      }
+      throw err;
+    }
+  },
+  updateHeroSlide: async (id: string, data: any) => {
+    try {
+      return await handleResponse(supabase.from('hero_slides').update(data).eq('id', id).select().single());
+    } catch (err: any) {
+      if (data && 'is_active' in data) {
+        const { is_active, ...rest } = data;
+        if (Object.keys(rest).length > 0) {
+          return handleResponse(supabase.from('hero_slides').update(rest).eq('id', id).select().single());
+        }
+        return null;
+      }
+      throw err;
+    }
+  },
   deleteHeroSlide: (id: string) => handleResponse(supabase.from('hero_slides').delete().eq('id', id)),
 
   // Galeri
-  getGaleriItems: (activeOnly = true) => {
-    let query = supabase.from('galeri_items').select('*').order('sort_order', { ascending: true });
-    if (activeOnly) query = query.eq('is_active', true);
-    return handleResponse(query);
+  getGaleriItems: async (activeOnly = true) => {
+    try {
+      const { data, error } = await supabase.from('galeri_items').select('*').order('sort_order', { ascending: true });
+      if (error) throw error;
+      const items = data || [];
+      if (activeOnly) {
+        return items.filter((item: any) => item.is_active !== false);
+      }
+      return items;
+    } catch {
+      return [];
+    }
   },
-  createGaleriItem: (data: any) => handleResponse(supabase.from('galeri_items').insert(data).select().single()),
-  updateGaleriItem: (id: string, data: any) => handleResponse(supabase.from('galeri_items').update(data).eq('id', id).select().single()),
+  createGaleriItem: async (data: any) => {
+    try {
+      return await handleResponse(supabase.from('galeri_items').insert(data).select().single());
+    } catch (err: any) {
+      if (data && 'is_active' in data) {
+        const { is_active, ...rest } = data;
+        return handleResponse(supabase.from('galeri_items').insert(rest).select().single());
+      }
+      throw err;
+    }
+  },
+  updateGaleriItem: async (id: string, data: any) => {
+    try {
+      return await handleResponse(supabase.from('galeri_items').update(data).eq('id', id).select().single());
+    } catch (err: any) {
+      if (data && 'is_active' in data) {
+        const { is_active, ...rest } = data;
+        if (Object.keys(rest).length > 0) {
+          return handleResponse(supabase.from('galeri_items').update(rest).eq('id', id).select().single());
+        }
+        return null;
+      }
+      throw err;
+    }
+  },
   deleteGaleriItem: (id: string) => handleResponse(supabase.from('galeri_items').delete().eq('id', id)),
 
   uploadKontenMedia: async (file: File, folder: 'hero' | 'galeri' | 'santri' | 'ijazah' | 'umum' = 'umum') => {
@@ -293,8 +393,9 @@ export const dataService = {
     } catch (err) { console.warn('Dashboard: transactions count failed', err); }
 
     try {
-      const { data } = await supabase.from('agenda').select('*').gte('date', new Date().toISOString().split('T')[0]).limit(3).order('date');
-      upcomingAgenda = dataService.normalizeAgenda(data);
+      const { data } = await supabase.from('agenda').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date');
+      const normalized = dataService.normalizeAgenda(data || []);
+      upcomingAgenda = normalized.filter((item: any) => item.is_active !== false).slice(0, 3);
     } catch (err) { console.warn('Dashboard: agenda fetch failed', err); }
 
     return {

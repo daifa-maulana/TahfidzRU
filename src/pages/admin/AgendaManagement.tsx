@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { dataService } from '../../services/data';
-import { Calendar, Plus, Edit2, Trash2, MapPin, Clock, Loader2, Image, X } from 'lucide-react';
+import { Calendar, Plus, Edit2, Trash2, MapPin, Clock, Loader2, Image, X, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { Modal } from '../../components/Modal';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { motion } from 'motion/react';
+import { cn } from '../../utils/cn';
 
 const toLocalNoon = (dateStr: string) => {
   try {
@@ -31,14 +32,23 @@ export default function AgendaManagement() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    title: '', description: '', date: format(new Date(), 'yyyy-MM-dd'),
-    time: '08:00', location: '', photo_url: ''
+    title: '', 
+    description: '', 
+    date: format(new Date(), 'yyyy-MM-dd'),
+    time: '08:00', 
+    location: '', 
+    photo_url: '',
+    is_active: true
   });
 
   useEffect(() => { fetchAgendas(); }, []);
 
   const fetchAgendas = async () => {
-    try { const data = await dataService.getAgenda(); setAgendas(data); }
+    try { 
+      // Admin views all agendas (both active & inactive)
+      const data = await dataService.getAgenda(false); 
+      setAgendas(data); 
+    }
     catch { showToast('Gagal memuat agenda', 'error'); }
     finally { setLoading(false); }
   };
@@ -47,17 +57,40 @@ export default function AgendaManagement() {
     if (agenda) {
       setEditingAgenda(agenda);
       setFormData({
-        title: agenda.title, description: agenda.description || '',
-        date: agenda.date, time: agenda.time || '08:00',
-        location: agenda.location || '', photo_url: agenda.photo_url || ''
+        title: agenda.title, 
+        description: agenda.description || '',
+        date: agenda.date, 
+        time: agenda.time || '08:00',
+        location: agenda.location || '', 
+        photo_url: agenda.photo_url || '',
+        is_active: agenda.is_active !== false
       });
       setPhotoPreview(agenda.photo_url || '');
     } else {
       setEditingAgenda(null);
-      setFormData({ title: '', description: '', date: format(new Date(), 'yyyy-MM-dd'), time: '08:00', location: '', photo_url: '' });
+      setFormData({ 
+        title: '', 
+        description: '', 
+        date: format(new Date(), 'yyyy-MM-dd'), 
+        time: '08:00', 
+        location: '', 
+        photo_url: '',
+        is_active: true
+      });
       setPhotoPreview('');
     }
     setIsModalOpen(true);
+  };
+
+  const handleToggleActive = async (agenda: any) => {
+    try {
+      const nextActive = agenda.is_active === false ? true : false;
+      await dataService.updateAgenda(agenda.id, { is_active: nextActive });
+      showToast(nextActive ? 'Agenda ditampilkan di publik' : 'Agenda disembunyikan dari publik', 'info');
+      fetchAgendas();
+    } catch {
+      showToast('Gagal mengubah status agenda', 'error');
+    }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,13 +185,27 @@ export default function AgendaManagement() {
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   />
+                  {item.is_active === false && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <EyeOff size={14} /> Disembunyikan (Private)
+                      </span>
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                     <span className="text-white text-xs font-semibold">Klik untuk perbesar</span>
                   </div>
                 </div>
               ) : (
-                <div className="h-28 bg-gradient-to-br from-[#1e3a5f]/5 to-[#1e3a5f]/10 flex items-center justify-center">
+                <div className="h-28 bg-gradient-to-br from-[#1e3a5f]/5 to-[#1e3a5f]/10 flex items-center justify-center relative">
                   <Calendar size={32} className="text-[#1e3a5f]/20" />
+                  {item.is_active === false && (
+                    <div className="absolute top-2 right-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 flex items-center gap-1 border border-amber-200">
+                        <EyeOff size={11} /> Disembunyikan
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -174,33 +221,61 @@ export default function AgendaManagement() {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-slate-800 group-hover:text-[#1e3a5f] transition-colors line-clamp-1">{item.title}</h3>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h3 className="text-sm font-bold text-slate-800 group-hover:text-[#1e3a5f] transition-colors line-clamp-1">{item.title}</h3>
+                      </div>
                       {item.description && (
-                        <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{item.description}</p>
+                        <p className="text-xs text-slate-400 line-clamp-2">{item.description}</p>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button 
+                      onClick={() => handleToggleActive(item)}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-colors",
+                        item.is_active === false 
+                          ? "text-amber-500 hover:bg-amber-50" 
+                          : "text-emerald-600 hover:bg-emerald-50"
+                      )}
+                      title={item.is_active === false ? "Tampilkan di Publik" : "Sembunyikan dari Publik"}
+                    >
+                      {item.is_active === false ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
                     <button onClick={() => handleOpenModal(item)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-[#1e3a5f] hover:bg-blue-50 transition-colors">
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-[#1e3a5f] hover:bg-blue-50 transition-colors"
+                      title="Edit Agenda">
                       <Edit2 size={13} />
                     </button>
                     <button onClick={() => handleDelete(item.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Hapus Agenda">
                       <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 pt-2 border-t border-slate-50">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                    <Clock size={12} />
-                    <span>{item.time || 'TBD'} WIB</span>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                      <Clock size={12} />
+                      <span>{item.time || 'TBD'} WIB</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
+                      <MapPin size={12} className="flex-shrink-0" />
+                      <span className="truncate">{item.location || 'Belum ditentukan'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
-                    <MapPin size={12} className="flex-shrink-0" />
-                    <span className="truncate">{item.location || 'Belum ditentukan'}</span>
-                  </div>
+                  {item.is_active === false ? (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                      Private
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Publik
+                    </span>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -218,8 +293,8 @@ export default function AgendaManagement() {
               onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
           </div>
           <div>
-            <label className="form-label">Deskripsi</label>
-            <textarea className="input-field" rows={3} value={formData.description}
+            <label className="form-label">Deskripsi / Detail Kegiatan</label>
+            <textarea className="input-field min-h-[80px]" value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -229,80 +304,70 @@ export default function AgendaManagement() {
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
             </div>
             <div>
-              <label className="form-label">Waktu</label>
+              <label className="form-label">Waktu (WIB)</label>
               <input type="time" className="input-field" value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })} />
             </div>
           </div>
           <div>
-            <label className="form-label">Lokasi</label>
-            <input type="text" className="input-field" placeholder="Contoh: Masjid Utama" value={formData.location}
+            <label className="form-label">Lokasi Kegiatan</label>
+            <input type="text" className="input-field" placeholder="Cth: Masjid Pesantren" value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
           </div>
-
-          {/* Photo Upload */}
           <div>
-            <label className="form-label flex items-center gap-1.5">
-              <Image size={13} className="text-slate-400" /> Foto Kegiatan (Opsional)
-            </label>
+            <label className="form-label">Foto Agenda (Opsional)</label>
             {photoPreview ? (
-              <div className="relative mt-1 rounded-xl overflow-hidden border border-slate-200">
-                <img src={photoPreview} alt="Preview" className="w-full h-40 object-cover" />
-                <button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md"
-                >
-                  <X size={12} />
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 h-36">
+                <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                <button type="button" onClick={handleRemovePhoto}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black transition-colors">
+                  <X size={14} />
                 </button>
               </div>
             ) : (
-              <div
-                className="mt-1 border-2 border-dashed border-slate-200 rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-[#1e3a5f]/40 hover:bg-slate-50 transition-all"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                  <Image size={18} className="text-slate-400" />
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold text-slate-600">Klik untuk upload foto</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WEBP maks. 2 MB</p>
-                </div>
+              <div onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center cursor-pointer hover:border-slate-400 transition-colors">
+                <Image size={24} className="mx-auto text-slate-300 mb-1" />
+                <p className="text-xs text-slate-500 font-semibold">Klik untuk unggah foto agenda</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG maksimal 2 MB</p>
               </div>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
           </div>
 
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={() => { setIsModalOpen(false); setPhotoPreview(''); }} className="btn-secondary flex-1">Batal</button>
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1">
+          <div className="flex items-center gap-2 pt-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <input
+              type="checkbox"
+              id="is_active"
+              checked={formData.is_active !== false}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+            />
+            <label htmlFor="is_active" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+              Tampilkan di Website Publik (Dapat dilihat umum)
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">Batal</button>
+            <button type="submit" disabled={isSubmitting} className="btn-primary">
               {isSubmitting ? <Loader2 size={15} className="animate-spin" /> : null}
-              {isSubmitting ? 'Menyimpan...' : 'Simpan Agenda'}
+              {editingAgenda ? 'Simpan Perubahan' : 'Tambah Agenda'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Photo Lightbox */}
+      {/* Photo Viewer Modal */}
       {viewingPhoto && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setViewingPhoto('')}
-        >
-          <div className="relative max-w-3xl w-full max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setViewingPhoto('')}
-              className="absolute -top-3 -right-3 z-10 p-1.5 bg-white rounded-full shadow-lg text-slate-700 hover:bg-red-50 hover:text-red-500 transition-colors"
-            >
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setViewingPhoto('')}>
+          <div className="relative max-w-3xl max-h-[85vh]">
+            <img src={viewingPhoto} alt="Full view" className="max-w-full max-h-[85vh] object-contain rounded-2xl" />
+            <button onClick={() => setViewingPhoto('')}
+              className="absolute -top-3 -right-3 p-2 bg-white text-slate-800 rounded-full shadow-lg hover:bg-slate-100">
               <X size={16} />
             </button>
-            <img src={viewingPhoto} alt="Foto kegiatan" className="w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl" />
           </div>
         </div>
       )}

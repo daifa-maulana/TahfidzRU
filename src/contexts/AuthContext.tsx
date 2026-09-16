@@ -42,6 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     warningShown.current = false;
     setInactivityWarning(false);
 
+    // Skip inactivity auto-logout if user selected Remember Me
+    const isRemembered = localStorage.getItem('remember_me') !== 'false';
+    if (isRemembered) {
+      return;
+    }
+
     const now = Date.now();
     const timeSinceActivity = now - lastActivity.current;
     const timeToWarning = INACTIVITY_LIMIT - WARNING_BEFORE - timeSinceActivity;
@@ -112,13 +118,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const applySession = (nextSession: Session | null) => {
+    const applySession = (nextSession: Session | null, isInitial = false) => {
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+      const newUser = nextSession?.user ?? null;
+      setUser(newUser);
       setSessionExpired(false);
-      if (nextSession?.user) {
-        setLoading(true);
-        fetchRole(nextSession.user.id);
+
+      if (newUser) {
+        // Only set loading to true if we don't have a role yet or on initial load
+        if (isInitial || !role) {
+          setLoading(true);
+        }
+        fetchRole(newUser.id);
       } else {
         roleRequestId.current += 1;
         setRole(null);
@@ -133,11 +144,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null);
         setUser(null);
         setRole(null);
-        setSessionExpired(error ? true : false);
+        setSessionExpired(false);
         setLoading(false);
         return;
       }
-      applySession(initialSession);
+      applySession(initialSession, true);
     });
 
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -150,7 +161,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSessionExpired(false);
         return;
       }
-      applySession(nextSession);
+      // For silent background events (TOKEN_REFRESHED, window focus, etc), pass isInitial=false
+      applySession(nextSession, false);
     });
 
     return () => {

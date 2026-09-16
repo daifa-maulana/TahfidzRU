@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/admin') || path.startsWith('/wali') || path.startsWith('/pengajar') || path.startsWith('/pengurus')) {
+      localStorage.setItem('last_visited_route', path + location.search);
+    }
+  }, [location]);
+  return null;
+}
 import { Database, ExternalLink } from 'lucide-react';
 import { prefetchSantriData, initPrefetchDeps } from './pages/admin/SantriManagement';
 import { supabase } from './lib/supabase';
@@ -131,6 +142,7 @@ function AppContent() {
         </div>
       )}
     <BrowserRouter>
+      <RouteTracker />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/fitur" element={<FiturPage />} />

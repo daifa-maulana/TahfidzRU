@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Mail, Lock, LogIn, Loader2, BookOpen, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -8,10 +8,11 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,9 +67,19 @@ export default function Login() {
         throw new Error(`Akun Anda belum disetujui oleh Admin. Silakan hubungi administrator.`);
       }
 
-      if (profile.role === 'admin') navigate('/admin');
-      else if (profile.role === 'pengajar') navigate('/pengajar');
-      else navigate('/wali');
+      const stateFrom = (location.state as any)?.from;
+      const storedFrom = localStorage.getItem('last_visited_route');
+      const rolePrefix = `/${profile.role}`;
+      const targetRoute = stateFrom || storedFrom;
+
+      if (targetRoute && targetRoute !== '/login' && targetRoute !== '/' && targetRoute.startsWith(rolePrefix)) {
+        navigate(targetRoute, { replace: true });
+      } else {
+        if (profile.role === 'admin') navigate('/admin');
+        else if (profile.role === 'pengajar') navigate('/pengajar');
+        else if (profile.role === 'pengurus') navigate('/pengurus');
+        else navigate('/wali');
+      }
 
     } catch (err: any) {
       if (err.message === 'Failed to fetch' || err.message?.toLowerCase().includes('fetch')) {

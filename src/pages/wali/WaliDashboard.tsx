@@ -82,11 +82,14 @@ export default function WaliDashboard() {
   const fetchUpcomingAgenda = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const { data } = await supabase.from('agenda').select('*').gte('date', today).order('date', { ascending: true }).limit(3);
-      const normalized = (data || []).map(item => ({
-        ...item,
-        date: typeof item.date === 'string' ? item.date : String(item.date || '')
-      }));
+      const { data } = await supabase.from('agenda').select('*').gte('date', today).order('date', { ascending: true });
+      const normalized = (data || [])
+        .map(item => ({
+          ...item,
+          date: typeof item.date === 'string' ? item.date : String(item.date || '')
+        }))
+        .filter(item => item.is_active !== false)
+        .slice(0, 3);
       setUpcomingAgenda(normalized);
     } catch (error) { console.error(error); }
   };
