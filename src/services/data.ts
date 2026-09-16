@@ -207,7 +207,7 @@ export const dataService = {
   updateGaleriItem: (id: string, data: any) => handleResponse(supabase.from('galeri_items').update(data).eq('id', id).select().single()),
   deleteGaleriItem: (id: string) => handleResponse(supabase.from('galeri_items').delete().eq('id', id)),
 
-  uploadKontenMedia: async (file: File, folder: 'hero' | 'galeri' | 'santri') => {
+  uploadKontenMedia: async (file: File, folder: 'hero' | 'galeri' | 'santri' | 'ijazah' | 'umum' = 'umum') => {
     const isVideo = file.type.startsWith('video/');
     const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {
@@ -304,5 +304,54 @@ export const dataService = {
       pendingTransactions,
       upcomingAgenda
     };
+  },
+
+  // Ijazah
+  getIjazahBySantri: async (santriId: string) => {
+    const { data, error } = await supabase
+      .from('ijazah')
+      .select('*')
+      .eq('santri_id', santriId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  saveIjazah: async (payload: any) => {
+    const { santri_id } = payload;
+    const existing = await dataService.getIjazahBySantri(santri_id);
+    if (existing) {
+      const { data, error } = await supabase
+        .from('ijazah')
+        .update(payload)
+        .eq('id', existing.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from('ijazah')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  },
+  getIjazahListByWali: async (waliId: string) => {
+    const { data: santriList, error: santriErr } = await supabase
+      .from('santri')
+      .select('id')
+      .eq('wali_id', waliId);
+    if (santriErr || !santriList || santriList.length === 0) return [];
+
+    const santriIds = santriList.map((s) => s.id);
+    const { data, error } = await supabase
+      .from('ijazah')
+      .select('*, santri(id, name, nis, class_name)')
+      .in('santri_id', santriIds)
+      .eq('is_published', true);
+    if (error) throw error;
+    return data || [];
   }
 };

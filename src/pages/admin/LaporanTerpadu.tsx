@@ -32,6 +32,8 @@ export default function LaporanTerpadu() {
   const [tahfidzLogs, setTahfidzLogs] = useState<any[]>([]);
   const [gradesList, setGradesList] = useState<any[]>([]);
   const [transactionsLogs, setTransactionsLogs] = useState<any[]>([]);
+  const [setoranViewMode, setoranSetViewMode] = useState<'per-santri' | 'semua-riwayat'>('per-santri');
+  const [expandedSantriSetoran, setExpandedSantriSetoran] = useState<Record<string, boolean>>({});
   const { toast, showToast } = useToast();
 
   const fetchReportData = async () => {
@@ -1202,89 +1204,248 @@ export default function LaporanTerpadu() {
                 </div>
               );
             })()
-          ) : (
+          ) : reportType === 'rekap-setoran' ? (
             /* REKAP SETORAN VIEW */
-            filteredTahfidzLogs.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase border border-slate-200">No</th>
-                      <th className="px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Santri</th>
-                      <th className="px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Surah</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Dari Ayat/Hal</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Sampai Ayat/Hal</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Jumlah</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Jenis</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Skema</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Kelancaran</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Tanggal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-800">
-                    {filteredTahfidzLogs.map((r: any, idx: number) => {
-                      const countAyat = r.from_ayat && r.to_ayat ? r.to_ayat - r.from_ayat + 1 : '-';
-                      return (
-                        <tr key={r.id || idx} className="hover:bg-slate-50/50">
-                          <td className="px-3 py-2 text-center border border-slate-200 font-medium">{idx + 1}</td>
-                          <td className="px-3 py-2 font-semibold text-slate-800 border border-slate-200">
-                            {r.santri?.name || '-'}
-                            <span className="text-slate-400 font-mono ml-1.5 text-[10px]">{r.santri?.nis || '-'}</span>
-                          </td>
-                          <td className="px-3 py-2 text-slate-600 border border-slate-200 font-medium">{r.surah}</td>
-                          <td className="px-3 py-2 text-center text-slate-600 border border-slate-200">{r.from_ayat ?? '-'}</td>
-                          <td className="px-3 py-2 text-center text-slate-600 border border-slate-200">{r.to_ayat ?? '-'}</td>
-                          <td className="px-3 py-2 text-center text-slate-600 border border-slate-200 font-bold">{countAyat}</td>
-                          <td className="px-3 py-2 text-center border border-slate-200">
-                            <span className={cn(
-                              'text-[10px] font-bold px-2 py-0.5 rounded-full border',
-                              r.type === 'Setoran Baru' 
-                                ? 'bg-blue-50 text-blue-600 border-blue-100' 
-                                : 'bg-sky-50 text-sky-600 border-sky-100'
-                            )}>
-                              {r.type}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-center text-slate-500 border border-slate-200">
-                            {r.setoran_mode === 'per_juz' ? 'Per Juz' : 'Per Halaman'}
-                          </td>
-                          <td className="px-3 py-2 text-center border border-slate-200">
-                            <span className={cn(
-                              'text-[10px] font-bold px-2 py-0.5 rounded-full border',
-                              r.fluency === 'Lancar' 
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
-                                : r.fluency === 'Cukup' 
-                                ? 'bg-amber-50 text-amber-700 border-amber-100' 
-                                : 'bg-red-50 text-red-700 border-red-100'
-                            )}>
-                              {r.fluency || '-'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-center text-slate-500 border border-slate-200">
-                            {r.created_at ? format(new Date(r.created_at), 'dd MMM yyyy', { locale: id }) : '-'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : reportType === 'rekap-setoran' ? (
-              <div className="text-center py-20 text-slate-400">
-                <BookOpen size={40} className="mx-auto text-slate-200 mb-3" />
-                <p className="text-sm font-semibold">Tidak ada data setoran tahfidz untuk periode ini</p>
-              </div>
-            ) : (() => {
-              // Rekap Uang Jajan calculations
-              let startDate: Date;
-              let endDate: Date;
+            (() => {
+              if (filteredTahfidzLogs.length === 0) {
+                return (
+                  <div className="text-center py-20 text-slate-400">
+                    <BookOpen size={40} className="mx-auto text-slate-200 mb-3" />
+                    <p className="text-sm font-semibold">Tidak ada data setoran tahfidz untuk periode ini</p>
+                  </div>
+                );
+              }
+
+              // Group logs per santri
+              const grouped: Record<string, {
+                santri: any;
+                logs: any[];
+                totalBaru: number;
+                totalMurojaah: number;
+                latestSurah: string;
+              }> = {};
+
+              filteredTahfidzLogs.forEach((log) => {
+                const sid = log.santri_id || log.santri?.id || log.santri?.name || 'unknown';
+                if (!grouped[sid]) {
+                  grouped[sid] = {
+                    santri: log.santri || { name: 'Santri', nis: '-' },
+                    logs: [],
+                    totalBaru: 0,
+                    totalMurojaah: 0,
+                    latestSurah: '-',
+                  };
+                }
+                grouped[sid].logs.push(log);
+                if (log.type === 'Setoran Baru') grouped[sid].totalBaru++;
+                else grouped[sid].totalMurojaah++;
+              });
+
+              Object.values(grouped).forEach((group) => {
+                if (group.logs.length > 0) {
+                  const sorted = [...group.logs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                  const latest = sorted[0];
+                  group.latestSurah = `${latest.surah || ''} (${latest.from_ayat || ''}-${latest.to_ayat || ''})`;
+                }
+              });
+
+              const groupedList = Object.values(grouped);
+
+              return (
+                <div className="space-y-4">
+                  {/* View Mode Toggle Header */}
+                  <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Tampilan Rekap Setoran</span>
+                    <div className="flex bg-slate-200/60 p-0.5 rounded-lg gap-1">
+                      <button
+                        onClick={() => setoranSetViewMode('per-santri')}
+                        className={cn(
+                          'py-1 px-3 rounded-md text-xs font-bold transition-all',
+                          setoranViewMode === 'per-santri' ? 'bg-[#1e3a5f] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                        )}
+                      >
+                        Per Santri ({groupedList.length})
+                      </button>
+                      <button
+                        onClick={() => setoranSetViewMode('semua-riwayat')}
+                        className={cn(
+                          'py-1 px-3 rounded-md text-xs font-bold transition-all',
+                          setoranViewMode === 'semua-riwayat' ? 'bg-[#1e3a5f] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                        )}
+                      >
+                        Semua Riwayat ({filteredTahfidzLogs.length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {setoranViewMode === 'per-santri' ? (
+                    <div className="space-y-3">
+                      {groupedList.map((group, idx) => {
+                        const sid = group.santri?.id || idx.toString();
+                        const isExpanded = !!expandedSantriSetoran[sid];
+
+                        return (
+                          <div key={sid} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                            <div
+                              onClick={() => setExpandedSantriSetoran((prev) => ({ ...prev, [sid]: !prev[sid] }))}
+                              className="p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/80 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 font-bold flex items-center justify-center text-xs border border-emerald-100 flex-shrink-0">
+                                  {idx + 1}
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-slate-900 text-sm">
+                                    {group.santri?.name}
+                                    <span className="text-slate-400 font-mono text-xs font-normal ml-2">NIS: {group.santri?.nis || '-'}</span>
+                                  </h4>
+                                  <p className="text-xs text-slate-500 mt-0.5">
+                                    Capaian Terakhir: <strong className="text-slate-700">{group.latestSurah}</strong>
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between md:justify-end gap-3">
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-100">
+                                    {group.totalBaru} Setoran Baru
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-100">
+                                    {group.totalMurojaah} Murojaah
+                                  </span>
+                                </div>
+                                <span className="text-xs text-slate-400 font-bold">{isExpanded ? '▲' : '▼'}</span>
+                              </div>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="border-t border-slate-200 bg-slate-50/50 p-3">
+                                <table className="w-full text-xs border-collapse">
+                                  <thead>
+                                    <tr className="bg-slate-100 text-slate-500 text-[10px] uppercase font-bold">
+                                      <th className="px-2 py-1.5 text-center border border-slate-200">No</th>
+                                      <th className="px-2 py-1.5 text-left border border-slate-200">Surah</th>
+                                      <th className="px-2 py-1.5 text-center border border-slate-200">Dari</th>
+                                      <th className="px-2 py-1.5 text-center border border-slate-200">Sampai</th>
+                                      <th className="px-2 py-1.5 text-center border border-slate-200">Jenis</th>
+                                      <th className="px-2 py-1.5 text-center border border-slate-200">Kelancaran</th>
+                                      <th className="px-2 py-1.5 text-center border border-slate-200">Tanggal</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {group.logs.map((log, lIdx) => (
+                                      <tr key={log.id || lIdx} className="hover:bg-white bg-white/70">
+                                        <td className="px-2 py-1.5 text-center border border-slate-200 font-medium text-slate-400">{lIdx + 1}</td>
+                                        <td className="px-2 py-1.5 font-bold text-slate-800 border border-slate-200">{log.surah}</td>
+                                        <td className="px-2 py-1.5 text-center border border-slate-200">{log.from_ayat ?? '-'}</td>
+                                        <td className="px-2 py-1.5 text-center border border-slate-200">{log.to_ayat ?? '-'}</td>
+                                        <td className="px-2 py-1.5 text-center border border-slate-200">
+                                          <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full border', log.type === 'Setoran Baru' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-sky-50 text-sky-600 border-sky-100')}>
+                                            {log.type}
+                                          </span>
+                                        </td>
+                                        <td className="px-2 py-1.5 text-center border border-slate-200">
+                                          <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full border', log.fluency === 'Lancar' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : log.fluency === 'Cukup' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-red-50 text-red-700 border-red-100')}>
+                                            {log.fluency || '-'}
+                                          </span>
+                                        </td>
+                                        <td className="px-2 py-1.5 text-center text-slate-500 border border-slate-200">
+                                          {log.created_at ? format(new Date(log.created_at), 'dd MMM yyyy', { locale: id }) : '-'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase border border-slate-200">No</th>
+                            <th className="px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Santri</th>
+                            <th className="px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Surah</th>
+                            <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Dari Ayat/Hal</th>
+                            <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Sampai Ayat/Hal</th>
+                            <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Jumlah</th>
+                            <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Jenis</th>
+                            <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Skema</th>
+                            <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Kelancaran</th>
+                            <th className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase border border-slate-200">Tanggal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-800">
+                          {filteredTahfidzLogs.map((r: any, idx: number) => {
+                            const countAyat = r.from_ayat && r.to_ayat ? r.to_ayat - r.from_ayat + 1 : '-';
+                            return (
+                              <tr key={r.id || idx} className="hover:bg-slate-50/50">
+                                <td className="px-3 py-2 text-center border border-slate-200 font-medium">{idx + 1}</td>
+                                <td className="px-3 py-2 font-semibold text-slate-800 border border-slate-200">
+                                  {r.santri?.name || '-'}
+                                  <span className="text-slate-400 font-mono ml-1.5 text-[10px]">{r.santri?.nis || '-'}</span>
+                                </td>
+                                <td className="px-3 py-2 text-slate-600 border border-slate-200 font-medium">{r.surah}</td>
+                                <td className="px-3 py-2 text-center text-slate-600 border border-slate-200">{r.from_ayat ?? '-'}</td>
+                                <td className="px-3 py-2 text-center text-slate-600 border border-slate-200">{r.to_ayat ?? '-'}</td>
+                                <td className="px-3 py-2 text-center text-slate-600 border border-slate-200 font-bold">{countAyat}</td>
+                                <td className="px-3 py-2 text-center border border-slate-200">
+                                  <span className={cn(
+                                    'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                                    r.type === 'Setoran Baru' 
+                                      ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                                      : 'bg-sky-50 text-sky-600 border-sky-100'
+                                  )}>
+                                    {r.type}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-center text-slate-500 border border-slate-200">
+                                  {r.setoran_mode === 'per_juz' ? 'Per Juz' : 'Per Halaman'}
+                                </td>
+                                <td className="px-3 py-2 text-center border border-slate-200">
+                                  <span className={cn(
+                                    'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                                    r.fluency === 'Lancar' 
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                                      : r.fluency === 'Cukup' 
+                                      ? 'bg-amber-50 text-amber-700 border-amber-100' 
+                                      : 'bg-red-50 text-red-700 border-red-100'
+                                  )}>
+                                    {r.fluency || '-'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-center text-slate-500 border border-slate-200">
+                                  {r.created_at ? format(new Date(r.created_at), 'dd MMM yyyy', { locale: id }) : '-'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
+          ) : reportType === 'rekap-uang-jajan' ? (
+            /* REKAP UANG JAJAN VIEW */
+            (() => {
+              let startDateStr: string;
+              let endDateStr: string;
 
               if (recapPeriod === 'month') {
-                startDate = new Date(recapYear, recapMonth - 1, 1);
-                endDate = new Date(recapYear, recapMonth, 0, 23, 59, 59, 999);
+                const monthStr = String(recapMonth).padStart(2, '0');
+                startDateStr = `${recapYear}-${monthStr}-01`;
+                const lastDay = new Date(recapYear, recapMonth, 0).getDate();
+                const lastDayStr = String(lastDay).padStart(2, '0');
+                endDateStr = `${recapYear}-${monthStr}-${lastDayStr}`;
               } else {
-                startDate = new Date(recapYear, 0, 1);
-                endDate = new Date(recapYear, 11, 31, 23, 59, 59, 999);
+                startDateStr = `${recapYear}-01-01`;
+                endDateStr = `${recapYear}-12-31`;
               }
 
               const financeData = santriList
@@ -1293,15 +1454,15 @@ export default function LaporanTerpadu() {
                   const studentTx = transactionsLogs.filter(t => t.santri_id === student.id && t.status === 'Paid');
 
                   // Saldo Awal (before start date)
-                  const priorTx = studentTx.filter(t => new Date(t.date) < startDate);
+                  const priorTx = studentTx.filter(t => (t.date || '').slice(0, 10) < startDateStr);
                   const priorIn = priorTx.filter(t => t.type === 'Uang Masuk').reduce((sum, t) => sum + Number(t.amount || 0), 0);
                   const priorOut = priorTx.filter(t => t.type === 'Uang Keluar').reduce((sum, t) => sum + Number(t.amount || 0), 0);
                   const saldoAwal = priorIn - priorOut;
 
                   // Transactions in this period
                   const periodTx = studentTx.filter(t => {
-                    const tDate = new Date(t.date);
-                    return tDate >= startDate && tDate <= endDate;
+                    const d = (t.date || '').slice(0, 10);
+                    return d >= startDateStr && d <= endDateStr;
                   });
                   const masuk = periodTx.filter(t => t.type === 'Uang Masuk').reduce((sum, t) => sum + Number(t.amount || 0), 0);
                   const keluar = periodTx.filter(t => t.type === 'Uang Keluar').reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -1367,7 +1528,7 @@ export default function LaporanTerpadu() {
                 </div>
               );
             })()
-          )}
+          ) : null}
         </div>
 
         {/* Signature Area */}

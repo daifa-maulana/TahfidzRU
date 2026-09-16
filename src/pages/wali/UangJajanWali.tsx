@@ -136,7 +136,7 @@ export default function UangJajanWali() {
 
   return (
     <div className="space-y-6 pb-10">
-      <Toast />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => {}} />}
       
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
