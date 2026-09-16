@@ -95,7 +95,7 @@ function AppContent() {
     if (!splash) return;
 
     const elapsed = performance.now();
-    const MIN_DISPLAY = 1500;
+    const MIN_DISPLAY = 200;
     const wait = Math.max(0, MIN_DISPLAY - elapsed);
 
     const timer = setTimeout(() => {

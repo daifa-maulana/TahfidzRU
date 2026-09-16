@@ -841,7 +841,7 @@ export default function UangJajanManagement() {
 
       {/* Edit Transaction Modal */}
       {isEditModalOpen && editingTransaction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden animate-slide-up">
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-800">Edit Transaksi</h3>
@@ -969,21 +969,30 @@ export default function UangJajanManagement() {
             </div>
             
             <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
-              {/* Financial summary for this specific student */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100">
-                  <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">Total Masuk</p>
-                  <p className="text-sm font-extrabold text-emerald-600">{formatRupiah(selectedSantriForDetail.masuk)}</p>
-                </div>
-                <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-100">
-                  <p className="text-[9px] font-bold text-rose-700 uppercase tracking-wider mb-0.5">Total Pengeluaran</p>
-                  <p className="text-sm font-extrabold text-rose-600">{formatRupiah(selectedSantriForDetail.keluar)}</p>
-                </div>
-                <div className="p-3.5 bg-sky-50 rounded-2xl border border-sky-100">
-                  <p className="text-[9px] font-bold text-[#0d557c] uppercase tracking-wider mb-0.5">Sisa Saldo</p>
-                  <p className="text-sm font-extrabold text-[#0d557c]">{formatRupiah(selectedSantriForDetail.sisa)}</p>
-                </div>
-              </div>
+              {/* Financial summary for this specific student (Live calculated) */}
+              {(() => {
+                const studentPaidTx = transactions.filter(t => t.santri_id === selectedSantriForDetail.id && t.status === 'Paid');
+                const liveMasuk = studentPaidTx.filter(t => t.type === 'Uang Masuk').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                const liveKeluar = studentPaidTx.filter(t => t.type === 'Uang Keluar').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                const liveSisa = liveMasuk - liveKeluar;
+
+                return (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100">
+                      <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">Total Masuk</p>
+                      <p className="text-sm font-extrabold text-emerald-600">{formatRupiah(liveMasuk)}</p>
+                    </div>
+                    <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-100">
+                      <p className="text-[9px] font-bold text-rose-700 uppercase tracking-wider mb-0.5">Total Pengeluaran</p>
+                      <p className="text-sm font-extrabold text-rose-600">{formatRupiah(liveKeluar)}</p>
+                    </div>
+                    <div className="p-3.5 bg-sky-50 rounded-2xl border border-sky-100">
+                      <p className="text-[9px] font-bold text-[#0d557c] uppercase tracking-wider mb-0.5">Sisa Saldo</p>
+                      <p className="text-sm font-extrabold text-[#0d557c]">{formatRupiah(liveSisa)}</p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Transactions log of this student */}
               <div className="space-y-3">
@@ -1000,12 +1009,13 @@ export default function UangJajanManagement() {
                         <th className="px-4 py-3">Keterangan</th>
                         <th className="px-4 py-3">Nominal</th>
                         <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 text-center">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
                       {transactions.filter(t => t.santri_id === selectedSantriForDetail.id).length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-8 text-center text-slate-400 font-medium">
+                          <td colSpan={5} className="px-4 py-8 text-center text-slate-400 font-medium">
                             Belum ada catatan mutasi untuk santri ini.
                           </td>
                         </tr>
@@ -1031,6 +1041,32 @@ export default function UangJajanManagement() {
                                 }>
                                   {t.status === 'Paid' ? 'Selesai' : t.status === 'Pending' ? 'Menunggu' : 'Batal'}
                                 </span>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => {
+                                      setEditingTransaction(t);
+                                      setFormSantriId(t.santri_id);
+                                      setFormType(t.type);
+                                      setFormAmount(t.amount.toString());
+                                      setFormDescription(t.description || '');
+                                      setFormDate(t.date || format(new Date(), 'yyyy-MM-dd'));
+                                      setIsEditModalOpen(true);
+                                    }}
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Edit Transaksi"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTransaction(t.id)}
+                                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))
