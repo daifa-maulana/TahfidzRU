@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ExternalLink, ArrowRight, ShieldCheck, Sparkles, Globe, RefreshCw } from 'lucide-react';
+import { ExternalLink, ArrowRight, ShieldCheck, Globe, MoveRight, CheckCircle2 } from 'lucide-react';
 
 export default function MaintenancePage() {
   // Pastikan splash screen dari index.html hilang dengan mulus
@@ -64,11 +64,8 @@ export default function MaintenancePage() {
           </div>
 
           <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/60 shadow-xs">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="hidden sm:inline">Status:</span> Maintenance
+            <CheckCircle2 size={14} className="text-emerald-500" />
+            <span>Website Baru Aktif</span>
           </div>
         </div>
       </header>
@@ -97,26 +94,26 @@ export default function MaintenancePage() {
                 />
               </div>
 
-              {/* Maintenance badge floating */}
-              <div className="absolute -bottom-1 -right-1 bg-amber-400 text-amber-950 p-1.5 sm:p-2 rounded-full shadow-md border-2 border-white flex items-center justify-center">
-                <RefreshCw size={14} className="animate-spin text-amber-950" style={{ animationDuration: '6s' }} />
+              {/* Moved badge floating */}
+              <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1.5 sm:p-2 rounded-full shadow-md border-2 border-white flex items-center justify-center">
+                <MoveRight size={14} className="text-white" />
               </div>
             </div>
 
-            {/* Maintenance Status Tag */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-amber-50 border border-amber-200/80 rounded-full text-amber-800 text-xs sm:text-sm font-semibold mb-4 sm:mb-5">
-              <Sparkles size={15} className="text-amber-600" />
-              <span>Pemberitahuan Pemeliharaan Sistem</span>
+            {/* Moved Status Tag */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-full text-emerald-800 text-xs sm:text-sm font-semibold mb-4 sm:mb-5">
+              <CheckCircle2 size={15} className="text-emerald-600" />
+              <span>Website Resmi Telah Berpindah</span>
             </div>
 
             {/* Primary Headline */}
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#1a2e12] font-display tracking-tight leading-tight mb-4">
-              Website Sedang Dalam Perbaikan
+              Website Kami Telah Berpindah
             </h2>
 
             {/* Description Text */}
             <p className="text-sm sm:text-base md:text-lg text-slate-600 leading-relaxed max-w-xl mx-auto mb-8 sm:mb-10 font-normal">
-              Mohon maaf atas ketidaknyamanannya. Saat ini website sedang dalam proses pembaruan dan pemeliharaan. Silakan mengunjungi website terbaru kami melalui tombol di bawah.
+              Website Pondok Pesantren Roudlotul 'Ulum kini telah resmi beralih ke alamat baru. Kunjungi website baru kami untuk informasi, kegiatan, dan layanan terkini.
             </p>
 
             {/* Call to Action Button */}
@@ -139,9 +136,9 @@ export default function MaintenancePage() {
                   <Globe size={18} />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800">Domain & Website Resmi</h3>
+                  <h3 className="text-xs font-bold text-slate-800">Domain & Website Baru</h3>
                   <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
-                    Akses informasi pondok pesantren melalui portal resmi ponpes.id
+                    Alamat resmi baru kami di portal ponpes.id — lebih cepat dan mudah diakses
                   </p>
                 </div>
               </div>
@@ -151,9 +148,9 @@ export default function MaintenancePage() {
                   <ShieldCheck size={18} />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800">Layanan Terpadu</h3>
+                  <h3 className="text-xs font-bold text-slate-800">Informasi Terkini</h3>
                   <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
-                    Pembaruan informasi dan pendaftaran santri lebih cepat dan aman
+                    Informasi kegiatan, pendaftaran santri, dan layanan tersedia di website baru
                   </p>
                 </div>
               </div>
