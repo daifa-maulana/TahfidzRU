@@ -214,13 +214,22 @@ function AppContent() {
 
 // =========================================================================
 // SAKLAR MODE MAINTENANCE SEMENTARA
-// - Set `true`  : Menampilkan halaman "Website Sedang Dalam Perbaikan"
-// - Set `false` : Mengembalikan ke seluruh tampilan dan fitur website lama
+// - Set `true`  : Halaman publik menampilkan "Website Telah Berpindah"
+//                 Rute internal (/admin, /pengajar, /wali, /pengurus, /login)
+//                 tetap bisa diakses seperti biasa.
+// - Set `false` : Seluruh website berjalan normal (nonaktifkan maintenance)
 // =========================================================================
 const IS_MAINTENANCE_MODE = true;
 
+// Rute-rute yang tetap bisa diakses meski maintenance mode aktif
+const ALLOWED_PATHS = ['/admin', '/pengajar', '/wali', '/pengurus', '/login', '/register'];
+
+function isAllowedPath(pathname: string): boolean {
+  return ALLOWED_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+}
+
 export default function App() {
-  if (IS_MAINTENANCE_MODE) {
+  if (IS_MAINTENANCE_MODE && !isAllowedPath(window.location.pathname)) {
     return <MaintenancePage />;
   }
 
