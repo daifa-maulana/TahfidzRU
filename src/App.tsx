@@ -25,6 +25,7 @@ import { WaliLayout } from './layouts/WaliLayout';
 import { PengurusLayout } from './layouts/PengurusLayout';
 
 // Direct Pages
+import MaintenancePage from './pages/MaintenancePage';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -211,7 +212,18 @@ function AppContent() {
   );
 }
 
+// =========================================================================
+// SAKLAR MODE MAINTENANCE SEMENTARA
+// - Set `true`  : Menampilkan halaman "Website Sedang Dalam Perbaikan"
+// - Set `false` : Mengembalikan ke seluruh tampilan dan fitur website lama
+// =========================================================================
+const IS_MAINTENANCE_MODE = true;
+
 export default function App() {
+  if (IS_MAINTENANCE_MODE) {
+    return <MaintenancePage />;
+  }
+
   return (
     <AuthProvider>
       <AppContent />
